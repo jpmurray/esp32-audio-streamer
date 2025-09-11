@@ -9,6 +9,42 @@
 #include "freertos/task.h"
 #include "freertos/ringbuf.h"
 
+// ------------------------------------------------------------
+// Logging (compile-time): -D LOG_LEVEL=1/2/3
+// 1 = errors only, 2 = info+warn+error (default), 3 = verbose/debug
+// ------------------------------------------------------------
+#ifndef LOG_LEVEL
+#define LOG_LEVEL 2
+#endif
+
+#if LOG_LEVEL >= 3
+#define LOGD(fmt, ...) Serial.printf("[D] " fmt, ##__VA_ARGS__)
+#else
+#define LOGD(...) do {} while (0)
+#endif
+
+#if LOG_LEVEL >= 2
+#define LOGI(fmt, ...) Serial.printf("[I] " fmt, ##__VA_ARGS__)
+#define LOGW(fmt, ...) Serial.printf("[W] " fmt, ##__VA_ARGS__)
+#else
+#define LOGI(...) do {} while (0)
+#define LOGW(...) do {} while (0)
+#endif
+
+#if LOG_LEVEL >= 1
+#define LOGE(fmt, ...) Serial.printf("[E] " fmt, ##__VA_ARGS__)
+#else
+#define LOGE(...) do {} while (0)
+#endif
+
+#if LOG_LEVEL >= 3
+#define LOG_DOT() Serial.print('.')
+#define LOG_NL()  Serial.println()
+#else
+#define LOG_DOT() do {} while (0)
+#define LOG_NL()  do {} while (0)
+#endif
+
 #ifndef WIFI_SSID
 #define WIFI_SSID "YOUR_SSID"
 #endif
@@ -251,7 +287,7 @@ const size_t frames_per_chunk = CHUNK_FRAMES;
   int32_t* in32 = (int32_t*)malloc(frames_per_chunk * BYTES_PER_SAMPLE_IN);
   int16_t* out16 = (int16_t*)malloc(frames_per_chunk * sizeof(int16_t));
   if (!in32 || !out16) {
-    Serial.println("[RB] buffer alloc failed; stopping producer");
+    LOGE("[RB] buffer alloc failed; stopping producer\n");
     if (in32) free(in32);
     if (out16) free(out16);
     vTaskDelete(nullptr);
@@ -299,7 +335,7 @@ static bool initI2SMic() {
   i2s_config.fixed_mclk = 0;
 
   if (i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL) != ESP_OK) {
-    Serial.println("[I2S] driver install failed");
+    LOGE("[I2S] driver install failed\n");
     return false;
   }
 
@@ -310,7 +346,7 @@ static bool initI2SMic() {
   pin_config.data_in_num = PIN_I2S_SD;
 
   if (i2s_set_pin(I2S_PORT, &pin_config) != ESP_OK) {
-    Serial.println("[I2S] set pin failed");
+    LOGE("[I2S] set pin failed\n");
     return false;
   }
 
@@ -320,8 +356,8 @@ static bool initI2SMic() {
   // Some mics need left-justified channel selection; set if needed:
   i2s_set_clk(I2S_PORT, SAMPLE_RATE_HZ, (i2s_bits_per_sample_t)BITS_PER_SAMPLE, I2S_CHANNEL_MONO);
 
-  Serial.printf("[I2S] init ok: %d Hz, %d-bit, mono, WS=%d, SCK=%d, SD=%d\n",
-                SAMPLE_RATE_HZ, BITS_PER_SAMPLE, PIN_I2S_WS, PIN_I2S_SCK, PIN_I2S_SD);
+  LOGI("[I2S] init ok: %d Hz, %d-bit, mono, WS=%d, SCK=%d, SD=%d\n",
+       SAMPLE_RATE_HZ, BITS_PER_SAMPLE, PIN_I2S_WS, PIN_I2S_SCK, PIN_I2S_SD);
   return true;
 }
 
@@ -335,18 +371,17 @@ static void connectWiFiBlocking() {
   delay(200);
 
   if (String(WIFI_SSID) == "YOUR_SSID" || String(WIFI_PASS) == "YOUR_PASSWORD") {
-    Serial.println();
-    Serial.println("[WARN] WIFI_SSID/WIFI_PASS are placeholders.");
-    Serial.println("       Set them in platformio.ini build_flags, then rebuild/flash.");
+    LOGW("WIFI_SSID/WIFI_PASS are placeholders.\n");
+    LOGW("Set them in platformio.ini build_flags, then rebuild/flash.\n");
   }
 
-  Serial.printf("Connecting to Wi‑Fi SSID: '%s'\n", ssid);
+  LOGI("Connecting to Wi‑Fi SSID: '%s'\n", ssid);
 
   // Optional: quick scan to verify SSID is visible
-  Serial.println("Scanning for networks...");
+  LOGI("Scanning for networks...\n");
   int n = WiFi.scanNetworks(/*async=*/false, /*hidden=*/true);
   if (n <= 0) {
-    Serial.println("[WiFi] No networks found");
+    LOGW("[WiFi] No networks found\n");
   } else {
     bool seen = false;
     for (int i = 0; i < n; ++i) {
@@ -354,10 +389,10 @@ static void connectWiFiBlocking() {
       int32_t rssi = WiFi.RSSI(i);
       if (s == ssid) {
         seen = true;
-        Serial.printf("[WiFi] Found target SSID '%s' RSSI=%d dBm\n", s.c_str(), (int)rssi);
+        LOGI("[WiFi] Found target SSID '%s' RSSI=%d dBm\n", s.c_str(), (int)rssi);
       }
     }
-    if (!seen) Serial.println("[WiFi] Target SSID not seen in scan (may still connect)");
+    if (!seen) LOGW("[WiFi] Target SSID not seen in scan (may still connect)\n");
   }
 
   // Use a stronger TX power (requires decent USB power) for robust association
@@ -369,17 +404,21 @@ static void connectWiFiBlocking() {
   uint32_t lastDiag = millis();
   while (WiFi.status() != WL_CONNECTED) {
     delay(250);
-    Serial.print('.');
-    if ((++dot % 40) == 0) Serial.println();
+    LOG_DOT();
+    if ((++dot % 40) == 0) LOG_NL();
     if (millis() - lastDiag > 10000) {
-      Serial.println("\n[WiFi] Still connecting... printing diagnostics");
+#if LOG_LEVEL >= 3
+      LOGD("\n[WiFi] Still connecting... printing diagnostics\n");
       WiFi.printDiag(Serial);
+#endif
       lastDiag = millis();
     }
   }
-  Serial.println();
-  Serial.print("Connected. IP address: ");
+  LOG_NL();
+#if LOG_LEVEL >= 2
+  Serial.print("[I] Connected. IP address: ");
   Serial.println(WiFi.localIP());
+#endif
 }
 
 static void disableBrownout() {
@@ -391,8 +430,8 @@ static void disableBrownout() {
 void setup() {
   Serial.begin(115200);
   delay(200);
-  Serial.println();
-  Serial.println("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)");
+  LOG_NL();
+  LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
 
   // Mitigate repeated resets due to brownout on marginal USB power
   disableBrownout();
@@ -402,7 +441,7 @@ void setup() {
   // I2S mic
   g_i2s_ok = initI2SMic();
   if (!g_i2s_ok) {
-    Serial.println("[I2S] init failed; /stream will 503");
+    LOGE("[I2S] init failed; /stream will 503\n");
   }
 
   // Ring buffer and producer task
@@ -411,9 +450,9 @@ void setup() {
     if (g_ringbuf) {
       g_rb_ok = true;
       xTaskCreatePinnedToCore(i2sProducerTask, "i2s_producer", 6144, nullptr, 5, &g_i2s_task, 0);
-      Serial.printf("[RB] created %u bytes, producer task started\n", (unsigned)RINGBUF_CAPACITY_BYTES);
+      LOGI("[RB] created %u bytes, producer task started\n", (unsigned)RINGBUF_CAPACITY_BYTES);
     } else {
-      Serial.println("[RB] create failed");
+      LOGE("[RB] create failed\n");
     }
   }
 
@@ -427,7 +466,7 @@ void setup() {
     if (aq < 0.0f) aq = 0.0f;
     if (aq > 32767.0f) aq = 32767.0f;
     g_hpf_a_q15 = (int32_t)lrintf(aq);
-    Serial.printf("[HPF] %s, fc=%d Hz, R=%.6f (a_q15=%ld)\n", g_hpf_enabled ? "ENABLED" : "disabled", (int)HPF_CUTOFF_HZ, g_hpf_R, (long)g_hpf_a_q15);
+    LOGI("[HPF] %s, fc=%d Hz, R=%.6f (a_q15=%ld)\n", g_hpf_enabled ? "ENABLED" : "disabled", (int)HPF_CUTOFF_HZ, g_hpf_R, (long)g_hpf_a_q15);
   }
 
   // HTTP routes
@@ -438,7 +477,7 @@ void setup() {
     server.on("/stream", HTTP_GET, [](){ server.send(503, "text/plain", "I2S not initialized"); });
   }
   server.begin();
-  Serial.println("HTTP server started on :80");
+  LOGI("HTTP server started on :%d\n", (int)SERVER_PORT);
 }
 
 void loop() {

@@ -54,6 +54,9 @@ This project uses a single external, git‑ignored config file so you don’t co
     -D I2S_PORT_NUM=0
     -D DMA_BUF_COUNT_CFG=4
     -D SERVER_PORT=80
+    -D LOG_LEVEL=2
+    ; Optional: stream as WAV instead of raw PCM
+    ; -D STREAM_WAV_ENABLE=1
     ; Optional: stream as WAV instead of raw PCM
     ; -D STREAM_WAV_ENABLE=1
   ```
@@ -120,6 +123,7 @@ Build‑time flags (set in `audio_settings.ini`):
 - `CHUNK_FRAMES` — producer chunk size in frames. `1024` aligns with DMA; `2048` reduces overhead with ~21 ms extra latency at 48 kHz.
 - `RB_CAPACITY_BYTES` — total ring buffer size. `65536` (64 KB) is a good default; increase for more headroom.
 - `USE_RIGHT_CHANNEL` — choose RIGHT(1) or LEFT(0) depending on mic strap.
+- `LOG_LEVEL` — 1 errors only; 2 info/warn/error (default); 3 verbose/debug.
 
 ## Troubleshooting
 
