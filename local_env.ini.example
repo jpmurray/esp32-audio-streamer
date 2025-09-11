@@ -4,38 +4,38 @@
 
 build_flags =
   ; Wi‑Fi
-  '-D WIFI_SSID="Your SSID"'
-  '-D WIFI_PASS="Your Password"'
-  -D WIFI_TX_POWER_DBM=15
+  '-D WIFI_SSID="Your SSID"'      ; Wi‑Fi SSID
+  '-D WIFI_PASS="Your Password"'   ; Wi‑Fi password
+  -D WIFI_TX_POWER_DBM=15           ; Target TX power in dBm (−1..19.5 mapped)
 
   ; Audio
-  -D SAMPLE_RATE_HZ=48000
-  -D CONVERT_SHIFT=11
-  -D HPF_ENABLE=1
-  -D HPF_CUTOFF_HZ=100
+  -D SAMPLE_RATE_HZ=48000          ; Sample rate in Hz
+  -D CONVERT_SHIFT=11               ; 32→16-bit shift; lower is louder
+  -D HPF_ENABLE=1                   ; 1=enable DC-block/HPF, 0=off
+  -D HPF_CUTOFF_HZ=100              ; HPF cutoff in Hz
 
   ; Producer / buffering
-  -D CHUNK_FRAMES=1024
-  -D RB_CAPACITY_BYTES=65536
-  -D DMA_BUF_COUNT_CFG=4
+  -D CHUNK_FRAMES=1024              ; Producer frames per chunk
+  -D RB_CAPACITY_BYTES=65536         ; Ring buffer size (bytes)
+  -D DMA_BUF_COUNT_CFG=4             ; I2S DMA buffer count
 
   ; Channel and pins
-  -D USE_RIGHT_CHANNEL=1
-  -D PIN_I2S_WS=25
-  -D PIN_I2S_SCK=33
-  -D PIN_I2S_SD=32
-  -D I2S_PORT_NUM=0
+  -D USE_RIGHT_CHANNEL=1            ; 1=RIGHT, 0=LEFT channel
+  -D PIN_I2S_WS=25                  ; WS/LRCLK pin
+  -D PIN_I2S_SCK=33                 ; BCLK/SCK pin
+  -D PIN_I2S_SD=32                  ; SD/DOUT pin
+  -D I2S_PORT_NUM=0                 ; I2S port index
 
   ; Power / stability
-  -D ENABLE_BROWNOUT_DISABLE=1
+  -D ENABLE_BROWNOUT_DISABLE=1       ; 1=disable brownout detector, 0=leave enabled
 
   ; HTTP server
-  -D SERVER_PORT=80
+  -D SERVER_PORT=80                 ; HTTP port
 
   ; Logging level (compile-time)
   ; 1 = errors only, 2 = info+warn+error, 3 = verbose/debug
-  -D LOG_LEVEL=2
+  -D LOG_LEVEL=2                    ; 1=errors, 2=info/warn, 3=debug
 
   ; Stream format (toggle raw PCM vs WAV header)
   ; 0 = raw `audio/L16` (default), 1 = `audio/x-wav` with streaming header
-  ; -D STREAM_WAV_ENABLE=1
+  ; -D STREAM_WAV_ENABLE=1           ; 1 to enable WAV header

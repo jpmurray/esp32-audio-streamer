@@ -305,6 +305,30 @@ static void handleStream() {
   client.stop();
 }
 
+static void handleUptime() {
+  unsigned long total = millis() / 1000UL;
+  unsigned long d = total / 86400UL; total %= 86400UL;
+  unsigned long h = total / 3600UL;  total %= 3600UL;
+  unsigned long m = total / 60UL;    unsigned long s = total % 60UL;
+
+  char human[64];
+  size_t pos = 0;
+  if (d > 0) pos += snprintf(human + pos, sizeof(human) - pos, "%lud ", d);
+  if (d > 0 || h > 0) pos += snprintf(human + pos, sizeof(human) - pos, "%luh ", h);
+  if (d > 0 || h > 0 || m > 0) pos += snprintf(human + pos, sizeof(human) - pos, "%lum ", m);
+  snprintf(human + pos, sizeof(human) - pos, "%lus", s);
+
+  char buf[192];
+  int n = snprintf(buf, sizeof(buf),
+                   "{\"uptime\": %lu, \"uptime_human\": \"%s\", \"days\": %lu, \"hours\": %lu, \"minutes\": %lu, \"seconds\": %lu}",
+                   (millis() / 1000UL), human, d, h, m, s);
+  if (n < 0) {
+    server.send(500, "application/json", "{\"error\":\"formatting\"}");
+    return;
+  }
+  server.send(200, "application/json", buf);
+}
+
 static void i2sProducerTask(void* arg) {
 const size_t frames_per_chunk = CHUNK_FRAMES;
   int32_t* in32 = (int32_t*)malloc(frames_per_chunk * BYTES_PER_SAMPLE_IN);
@@ -514,8 +538,9 @@ void setup() {
     LOGI("[HPF] %s, fc=%d Hz, R=%.6f (a_q15=%ld)\n", g_hpf_enabled ? "ENABLED" : "disabled", (int)HPF_CUTOFF_HZ, g_hpf_R, (long)g_hpf_a_q15);
   }
 
-  // HTTP routes
+// HTTP routes
   server.on("/", HTTP_GET, handleRoot);
+  server.on("/uptime", HTTP_GET, handleUptime);
   if (g_i2s_ok && g_rb_ok) {
     server.on("/stream", HTTP_GET, handleStream);
   } else {
