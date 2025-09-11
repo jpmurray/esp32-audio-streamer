@@ -1,0 +1,29 @@
+[env:wemos_d1_mini32]
+; Local, untracked settings (Wi‑Fi + audio/tuning)
+; Copy this file to local_env.ini and edit values
+
+build_flags =
+  ; Wi‑Fi
+  '-D WIFI_SSID="Your SSID"'
+  '-D WIFI_PASS="Your Password"'
+
+  ; Audio
+  -D SAMPLE_RATE_HZ=48000
+  -D CONVERT_SHIFT=11
+  -D HPF_ENABLE=1
+  -D HPF_CUTOFF_HZ=100
+
+  ; Producer / buffering
+  -D CHUNK_FRAMES=1024
+  -D RB_CAPACITY_BYTES=65536
+  -D DMA_BUF_COUNT_CFG=4
+
+  ; Channel and pins
+  -D USE_RIGHT_CHANNEL=1
+  -D PIN_I2S_WS=25
+  -D PIN_I2S_SCK=33
+  -D PIN_I2S_SD=32
+  -D I2S_PORT_NUM=0
+
+  ; HTTP server
+  -D SERVER_PORT=80

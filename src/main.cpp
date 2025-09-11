@@ -16,7 +16,11 @@
 #define WIFI_PASS "YOUR_PASSWORD"
 #endif
 
-static WebServer server(80);
+#ifndef SERVER_PORT
+#define SERVER_PORT 80
+#endif
+
+static WebServer server(SERVER_PORT);
 static bool g_i2s_ok = false;
 static bool g_rb_ok = false;
 
@@ -32,8 +36,30 @@ static bool g_rb_ok = false;
 #ifndef HPF_CUTOFF_HZ
 #define HPF_CUTOFF_HZ 100
 #endif
+#ifndef CHUNK_FRAMES
+#define CHUNK_FRAMES 1024
+#endif
+#ifndef RB_CAPACITY_BYTES
+#define RB_CAPACITY_BYTES (64 * 1024)
+#endif
+#ifndef USE_RIGHT_CHANNEL
+#define USE_RIGHT_CHANNEL 1
+#endif
 #ifndef PI_F
 #define PI_F 3.14159265358979323846f
+#endif
+
+#ifndef PIN_I2S_WS
+#define PIN_I2S_WS 25
+#endif
+#ifndef PIN_I2S_SCK
+#define PIN_I2S_SCK 33
+#endif
+#ifndef PIN_I2S_SD
+#define PIN_I2S_SD 32
+#endif
+#ifndef I2S_PORT_NUM
+#define I2S_PORT_NUM 0
 #endif
 
 static bool g_hpf_enabled = (HPF_ENABLE != 0);
@@ -45,21 +71,26 @@ static int32_t g_hpf_prev_y_i32 = 0;   // fast integer path state
 static int32_t g_hpf_a_q15 = 0;        // R in Q15
 
 // I2S microphone configuration (INMP44/INMP441 style)
-static const i2s_port_t I2S_PORT = I2S_NUM_0;
-static const int PIN_I2S_WS   = 25; // LRCLK / WS
-static const int PIN_I2S_SCK  = 33; // BCLK / SCK
-static const int PIN_I2S_SD   = 32; // SD / DOUT from mic
+static const i2s_port_t I2S_PORT = (i2s_port_t)I2S_PORT_NUM;
+// Pins are configurable via build flags PIN_I2S_WS, PIN_I2S_SCK, PIN_I2S_SD
 
 static const int BITS_PER_SAMPLE = 32;     // Read 32-bit from I2S mic
 static const int BYTES_PER_SAMPLE_IN = BITS_PER_SAMPLE / 8; // 4 bytes input
 static const int OUT_BITS = 16;            // Stream 16-bit PCM
 
 // DMA: 4 buffers × 1024 samples (per channel). Adjust if needed.
-static const int DMA_BUF_COUNT = 4;
+#ifndef DMA_BUF_COUNT_CFG
+#define DMA_BUF_COUNT_CFG 4
+#endif
+static const int DMA_BUF_COUNT = DMA_BUF_COUNT_CFG;
 static const int DMA_BUF_LEN   = 1024;     // frames per DMA buffer (ESP-IDF max is 1024)
 
-// Convert mic channel: strap typically LEFT; flip to ONLY_RIGHT if silent
+// Convert mic channel: strap typically LEFT; controlled by USE_RIGHT_CHANNEL flag
+#if USE_RIGHT_CHANNEL
 static const i2s_channel_fmt_t I2S_CHAN_FMT = I2S_CHANNEL_FMT_ONLY_RIGHT;
+#else
+static const i2s_channel_fmt_t I2S_CHAN_FMT = I2S_CHANNEL_FMT_ONLY_LEFT;
+#endif
 
 // Temporary scratch buffers (producer side uses its own local buffers)
 static int32_t i2s_in32[1024];         // legacy scratch, kept for size reference
@@ -67,7 +98,7 @@ static int16_t pcm16_out[1024];        // legacy scratch, kept for size referenc
 
 // Ring buffer for decoupling I2S and streamer
 static RingbufHandle_t g_ringbuf = nullptr;
-static const size_t RINGBUF_CAPACITY_BYTES = 64 * 1024; // ~0.67 s at 48k mono 16-bit
+static const size_t RINGBUF_CAPACITY_BYTES = RB_CAPACITY_BYTES; // configurable via build flag
 static TaskHandle_t g_i2s_task = nullptr;
 
 static const char INDEX_HTML[] PROGMEM = R"HTML(
@@ -110,11 +141,11 @@ static void handleStream() {
   // Start a raw PCM stream: HTTP/1.1 without Content-Length; keep connection open
   WiFiClient client = server.client();
   client.setNoDelay(true);
-  client.print(
-      "HTTP/1.1 200 OK\r\n"
-      "Content-Type: audio/L16; rate=48000; channels=1\r\n"
-      "Cache-Control: no-store\r\n"
-      "Connection: close\r\n\r\n");
+  client.print("HTTP/1.1 200 OK\r\n");
+  client.print("Content-Type: audio/L16; rate=");
+  client.print(SAMPLE_RATE_HZ);
+  client.print("; channels=1\r\n");
+  client.print("Cache-Control: no-store\r\nConnection: close\r\n\r\n");
 
   // Streaming loop: pull from ring buffer, optional HPF, write
   while (client.connected()) {
@@ -157,7 +188,7 @@ static void handleStream() {
 }
 
 static void i2sProducerTask(void* arg) {
-  const size_t frames_per_chunk = 2048;
+const size_t frames_per_chunk = CHUNK_FRAMES;
   int32_t* in32 = (int32_t*)malloc(frames_per_chunk * BYTES_PER_SAMPLE_IN);
   int16_t* out16 = (int16_t*)malloc(frames_per_chunk * sizeof(int16_t));
   if (!in32 || !out16) {
