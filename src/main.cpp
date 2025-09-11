@@ -141,7 +141,10 @@ static RingbufHandle_t g_ringbuf = nullptr;
 static const size_t RINGBUF_CAPACITY_BYTES = RB_CAPACITY_BYTES; // configurable via build flag
 static TaskHandle_t g_i2s_task = nullptr;
 
-static const char INDEX_HTML[] PROGMEM = R"HTML(
+// Dynamic index page is rendered in handleRoot() based on build flags
+// (STREAM_WAV_ENABLE, SAMPLE_RATE_HZ)
+// Old static HTML kept here for reference
+/* static const char INDEX_HTML[] PROGMEM = R"HTML(
 <!doctype html>
 <html>
   <head>
@@ -169,10 +172,22 @@ static const char INDEX_HTML[] PROGMEM = R"HTML(
     </div>
   </body>
 </html>
-)HTML";
+)HTML"; */
 
 static void handleRoot() {
-  server.send_P(200, "text/html", INDEX_HTML);
+  String html;
+  html.reserve(1024);
+  html += F("<!doctype html>\n");
+  html += F("<html>\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>ESP32 Audio Streamer</title>\n    <style>\n      body { font-family: -apple-system, system-ui, Roboto, Arial, sans-serif; margin: 2rem; }\n      .card { max-width: 680px; padding: 1rem 1.25rem; border: 1px solid #ddd; border-radius: 8px; }\n      code { background: #f6f8fa; padding: 0.2rem 0.4rem; border-radius: 4px; }\n      .warn { color: #b35600; }\n    </style>\n  </head>\n  <body>\n    <h1>ESP32 Audio Streamer</h1>\n    <div class=\"card\">\n      <p>Status: <strong>Server is running</strong></p>\n      <p>\n        Once audio streaming is enabled, this player will work:\n      </p>\n      <audio id=\"player\" controls preload=\"none\" src=\"/stream\"></audio>\n      <p>\n        ");
+  if (STREAM_WAV_ENABLE) {
+    html += F("Streaming WAV: <code>audio/x-wav</code>, mono ");
+  } else {
+    html += F("Streaming raw PCM: <code>audio/L16</code>, mono ");
+  }
+  html += String((int)SAMPLE_RATE_HZ);
+  html += F(" Hz.\n      </p>\n    </div>\n  </body>\n</html>\n");
+
+  server.send(200, "text/html", html);
 }
 
 static void handleStream() {
