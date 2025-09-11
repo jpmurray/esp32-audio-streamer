@@ -56,6 +56,10 @@
 #define WIFI_TX_POWER_DBM 15
 #endif
 
+#ifndef ENABLE_BROWNOUT_DISABLE
+#define ENABLE_BROWNOUT_DISABLE 1
+#endif
+
 #ifndef SERVER_PORT
 #define SERVER_PORT 80
 #endif
@@ -469,8 +473,13 @@ void setup() {
   LOG_NL();
   LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
 
-  // Mitigate repeated resets due to brownout on marginal USB power
+  // Optional: brownout workaround (can be disabled via build flag)
+#if ENABLE_BROWNOUT_DISABLE
+  LOGI("[PMIC] Brownout detector disabled (workaround enabled)\n");
   disableBrownout();
+#else
+  LOGI("[PMIC] Brownout workaround disabled (leaving detector enabled)\n");
+#endif
 
   connectWiFiBlocking();
 

@@ -26,6 +26,9 @@ build_flags =
   -D PIN_I2S_SD=32
   -D I2S_PORT_NUM=0
 
+  ; Power / stability
+  -D ENABLE_BROWNOUT_DISABLE=1
+
   ; HTTP server
   -D SERVER_PORT=80
 
