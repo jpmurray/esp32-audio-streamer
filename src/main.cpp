@@ -19,6 +19,10 @@
 #ifndef SERVER_PORT
 #define SERVER_PORT 80
 #endif
+// Stream format toggle (set via extra configs/local_env.ini)
+#ifndef STREAM_WAV_ENABLE
+#define STREAM_WAV_ENABLE 0   // 0 = raw audio/L16, 1 = audio/x-wav with header
+#endif
 
 static WebServer server(SERVER_PORT);
 static bool g_i2s_ok = false;
@@ -142,10 +146,65 @@ static void handleStream() {
   WiFiClient client = server.client();
   client.setNoDelay(true);
   client.print("HTTP/1.1 200 OK\r\n");
-  client.print("Content-Type: audio/L16; rate=");
-  client.print(SAMPLE_RATE_HZ);
-  client.print("; channels=1\r\n");
+  if (STREAM_WAV_ENABLE) {
+    client.print("Content-Type: audio/x-wav\r\n");
+  } else {
+    client.print("Content-Type: audio/L16; rate=");
+    client.print(SAMPLE_RATE_HZ);
+    client.print("; channels=1\r\n");
+  }
   client.print("Cache-Control: no-store\r\nConnection: close\r\n\r\n");
+
+  // If WAV is enabled, send a minimal header with unknown size (streaming)
+  if (STREAM_WAV_ENABLE) {
+    const uint32_t sampleRate = (uint32_t)SAMPLE_RATE_HZ;
+    const uint16_t channels = 1;
+    const uint16_t bitsPerSample = 16;
+    const uint32_t byteRate = sampleRate * channels * (bitsPerSample / 8);
+    const uint16_t blockAlign = channels * (bitsPerSample / 8);
+    const uint32_t riffSize = 0xFFFFFFFF;   // unknown/streaming
+    const uint32_t dataSize = 0xFFFFFFFF;   // unknown/streaming
+
+    uint8_t hdr[44];
+    // RIFF chunk descriptor
+    hdr[0]='R'; hdr[1]='I'; hdr[2]='F'; hdr[3]='F';
+    hdr[4]= (uint8_t)(riffSize & 0xFF);
+    hdr[5]= (uint8_t)((riffSize >> 8) & 0xFF);
+    hdr[6]= (uint8_t)((riffSize >> 16) & 0xFF);
+    hdr[7]= (uint8_t)((riffSize >> 24) & 0xFF);
+    hdr[8]='W'; hdr[9]='A'; hdr[10]='V'; hdr[11]='E';
+    // fmt subchunk
+    hdr[12]='f'; hdr[13]='m'; hdr[14]='t'; hdr[15]=' ';
+    const uint32_t subchunk1Size = 16; // PCM
+    hdr[16]= (uint8_t)(subchunk1Size & 0xFF);
+    hdr[17]= (uint8_t)((subchunk1Size >> 8) & 0xFF);
+    hdr[18]= (uint8_t)((subchunk1Size >> 16) & 0xFF);
+    hdr[19]= (uint8_t)((subchunk1Size >> 24) & 0xFF);
+    const uint16_t audioFormat = 1; // PCM
+    hdr[20]= (uint8_t)(audioFormat & 0xFF);
+    hdr[21]= (uint8_t)((audioFormat >> 8) & 0xFF);
+    hdr[22]= (uint8_t)(channels & 0xFF);
+    hdr[23]= (uint8_t)((channels >> 8) & 0xFF);
+    hdr[24]= (uint8_t)(sampleRate & 0xFF);
+    hdr[25]= (uint8_t)((sampleRate >> 8) & 0xFF);
+    hdr[26]= (uint8_t)((sampleRate >> 16) & 0xFF);
+    hdr[27]= (uint8_t)((sampleRate >> 24) & 0xFF);
+    hdr[28]= (uint8_t)(byteRate & 0xFF);
+    hdr[29]= (uint8_t)((byteRate >> 8) & 0xFF);
+    hdr[30]= (uint8_t)((byteRate >> 16) & 0xFF);
+    hdr[31]= (uint8_t)((byteRate >> 24) & 0xFF);
+    hdr[32]= (uint8_t)(blockAlign & 0xFF);
+    hdr[33]= (uint8_t)((blockAlign >> 8) & 0xFF);
+    hdr[34]= (uint8_t)(bitsPerSample & 0xFF);
+    hdr[35]= (uint8_t)((bitsPerSample >> 8) & 0xFF);
+    // data subchunk
+    hdr[36]='d'; hdr[37]='a'; hdr[38]='t'; hdr[39]='a';
+    hdr[40]= (uint8_t)(dataSize & 0xFF);
+    hdr[41]= (uint8_t)((dataSize >> 8) & 0xFF);
+    hdr[42]= (uint8_t)((dataSize >> 16) & 0xFF);
+    hdr[43]= (uint8_t)((dataSize >> 24) & 0xFF);
+    client.write(hdr, sizeof(hdr));
+  }
 
   // Streaming loop: pull from ring buffer, optional HPF, write
   while (client.connected()) {

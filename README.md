@@ -5,7 +5,7 @@ Streams live audio from an I²S MEMS microphone (INMP44/INMP441–style) on an E
 - Wi‑Fi STA with blocking connect and diagnostics
 - I²S mic capture at 48 kHz, mono, 32‑bit in → 16‑bit out
 - Pipeline: I²S producer task → ring buffer → optional HPF → HTTP streamer
-- Endpoint `/stream`: continuous raw PCM (`audio/L16; rate=48000; channels=1`)
+- Endpoint `/stream`: continuous audio as raw PCM (`audio/L16; rate=48000; channels=1`) or WAV (`audio/x-wav`) when enabled via build flag
 - Simple index page at `/` with a basic player
 
 ## Hardware
@@ -54,6 +54,8 @@ This project uses a single external, git‑ignored config file so you don’t co
     -D I2S_PORT_NUM=0
     -D DMA_BUF_COUNT_CFG=4
     -D SERVER_PORT=80
+    ; Optional: stream as WAV instead of raw PCM
+    ; -D STREAM_WAV_ENABLE=1
   ```
 
 Notes
@@ -79,12 +81,15 @@ Notes
 ## Use
 
 - Index page: `http://<esp-ip>/` (basic HTML page)
-- Stream: `http://<esp-ip>/stream` — raw 16‑bit PCM, mono, 48 kHz
+- Stream: `http://<esp-ip>/stream` — raw 16‑bit PCM (default) or WAV with header, mono, 48 kHz
 
 Players
 - sox (quick check):
   ```bash
+  # Raw PCM (default)
   curl http://<esp-ip>/stream | play -t s16 -r 48000 -c 1 -
+  # If WAV header is enabled
+  curl http://<esp-ip>/stream | play -t wav -
   ```
 - VLC:
   ```bash

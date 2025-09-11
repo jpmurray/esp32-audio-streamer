@@ -27,3 +27,7 @@ build_flags =
 
   ; HTTP server
   -D SERVER_PORT=80
+
+  ; Stream format (toggle raw PCM vs WAV header)
+  ; 0 = raw `audio/L16` (default), 1 = `audio/x-wav` with streaming header
+  ; -D STREAM_WAV_ENABLE=1
