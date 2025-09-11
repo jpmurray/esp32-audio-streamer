@@ -52,6 +52,10 @@
 #define WIFI_PASS "YOUR_PASSWORD"
 #endif
 
+#ifndef WIFI_TX_POWER_DBM
+#define WIFI_TX_POWER_DBM 15
+#endif
+
 #ifndef SERVER_PORT
 #define SERVER_PORT 80
 #endif
@@ -376,6 +380,21 @@ static bool initI2SMic() {
   return true;
 }
 
+static wifi_power_t mapTxPowerDbm(int dbm) {
+  if (dbm >= 20) return WIFI_POWER_19_5dBm;
+  if (dbm >= 19) return WIFI_POWER_19dBm;
+  if (dbm >= 18) return WIFI_POWER_18_5dBm;
+  if (dbm >= 17) return WIFI_POWER_17dBm;
+  if (dbm >= 15) return WIFI_POWER_15dBm;
+  if (dbm >= 13) return WIFI_POWER_13dBm;
+  if (dbm >= 11) return WIFI_POWER_11dBm;
+  if (dbm >= 9)  return WIFI_POWER_8_5dBm;
+  if (dbm >= 7)  return WIFI_POWER_7dBm;
+  if (dbm >= 5)  return WIFI_POWER_5dBm;
+  if (dbm >= 2)  return WIFI_POWER_2dBm;
+  return WIFI_POWER_MINUS_1dBm;
+}
+
 static void connectWiFiBlocking() {
   const char* ssid = WIFI_SSID;
   const char* pass = WIFI_PASS;
@@ -410,8 +429,10 @@ static void connectWiFiBlocking() {
     if (!seen) LOGW("[WiFi] Target SSID not seen in scan (may still connect)\n");
   }
 
-  // Use a stronger TX power (requires decent USB power) for robust association
-  WiFi.setTxPower(WIFI_POWER_15dBm);
+  // Set TX power from build flag, mapped to closest supported step
+  wifi_power_t txp = mapTxPowerDbm((int)WIFI_TX_POWER_DBM);
+  WiFi.setTxPower(txp);
+  LOGI("[WiFi] TX power target=%d dBm (mapped enum=%d)\n", (int)WIFI_TX_POWER_DBM, (int)txp);
   WiFi.begin(ssid, pass);
 
   // Block until connected

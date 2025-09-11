@@ -6,6 +6,7 @@ build_flags =
   ; Wi‑Fi
   '-D WIFI_SSID="Your SSID"'
   '-D WIFI_PASS="Your Password"'
+  -D WIFI_TX_POWER_DBM=15
 
   ; Audio
   -D SAMPLE_RATE_HZ=48000
