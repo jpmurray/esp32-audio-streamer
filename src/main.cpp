@@ -373,7 +373,7 @@ static double clamp(double x, double a, double b) { if (x < a) return a; if (x >
 static double jdFromDateUTC(int y, int m, int d) {
   if (m <= 2) { y -= 1; m += 12; }
   int A = y / 100;
-  int B = 2 - A + A / 5;
+  int B = 2 - A + A / 4; // Gregorian calendar correction
   double JD = floor(365.25 * (y + 4716)) + floor(30.6001 * (m + 1)) + d + B - 1524.5;
   return JD;
 }
@@ -390,32 +390,78 @@ struct CivilTimes { time_t dawn; time_t dusk; bool valid; };
 
 static CivilTimes computeCivilTimesUTC_forDay(int y, int m, int d, double lat_deg, double lon_deg) {
   CivilTimes out; out.dawn = 0; out.dusk = 0; out.valid = true;
-  const double h0 = deg2rad(-6.0); // civil twilight
+  const double J2000 = 2451545.0;
+  const double h0 = deg2rad(-6.0); // civil twilight center of Sun at -6°
   const double phi = deg2rad(lat_deg);
-  const double Lw = -lon_deg; // west is positive in algorithm via LON/360 term
 
-  double J0 = 2451545.0009 + (Lw / 360.0);
+  // NOAA/USNO derivation expects Lw = -longitude (degrees, west negative)
+  const double Lw = -lon_deg;
+
+  // Julian Day at 0h UTC for the requested date
   double JD = jdFromDateUTC(y, m, d);
-  double n = round(JD - J0);
-  double Jstar = J0 + n;
-  double M = deg2rad(357.5291 + 0.98560028 * (Jstar - 2451545.0));
-  double C = deg2rad(1.9148) * sin(M) + deg2rad(0.0200) * sin(2 * M) + deg2rad(0.0003) * sin(3 * M);
-  double lambda = M + C + deg2rad(102.9372) + PI; // ecliptic longitude
-  double delta = asin(sin(lambda) * sin(deg2rad(23.44)));
-  double Jtransit = Jstar + 0.0053 * sin(M) - 0.0069 * sin(2 * lambda);
 
+  // Approximate solar noon (transit) seed
+  // n is the integer number of days since J2000 adjusted by longitude
+  double n = round((JD - J2000 - 0.0009) - (Lw / 360.0));
+  double Jstar = J2000 + 0.0009 + (Lw / 360.0) + n;
+
+  // Solar mean anomaly (radians)
+  double M = deg2rad(357.5291 + 0.98560028 * (Jstar - J2000));
+
+  // Equation of center (radians)
+  double C = deg2rad(1.9148) * sin(M) + deg2rad(0.0200) * sin(2.0 * M) + deg2rad(0.0003) * sin(3.0 * M);
+
+  // Ecliptic longitude of the Sun (radians)
+  double lambda = M + C + deg2rad(102.9372) + PI;
+
+  // Solar declination (radians)
+  double delta = asin(sin(lambda) * sin(deg2rad(23.44)));
+
+  // Solar transit (Julian day)
+  double Jtransit = Jstar + 0.0053 * sin(M) - 0.0069 * sin(2.0 * lambda);
+
+  // Hour angle for given altitude (civil twilight)
   double cosH0 = (sin(h0) - sin(phi) * sin(delta)) / (cos(phi) * cos(delta));
-  cosH0 = clamp(cosH0, -1.0, 1.0);
+
+  // Explicit polar day/night handling:
+  //  - cosH0 > 1: Sun always below h0 → no dawn/dusk
+  //  - cosH0 < -1: Sun always above h0 → no dusk/dawn
+  if (cosH0 > 1.0 || cosH0 < -1.0) {
+    out.valid = false;
+    out.dawn = 0;
+    out.dusk = 0;
+    return out;
+  }
+
   double H0 = acos(cosH0); // radians
 
+  // Rise and set (Julian day)
   double Jrise = Jtransit - H0 / (2.0 * PI);
   double Jset  = Jtransit + H0 / (2.0 * PI);
 
+  // Convert to Unix epoch
   time_t rise = epochFromJD(Jrise);
-  time_t set = epochFromJD(Jset);
+  time_t set  = epochFromJD(Jset);
+
+  // Anchor results into the requested UTC date window [JD, JD+1)
+  time_t day_start = epochFromJD(JD);
+  time_t day_end   = day_start + 86400;
+
+  while (rise < day_start)  rise += 86400;
+  while (rise >= day_end)   rise -= 86400;
+  while (set  < day_start)  set  += 86400;
+  while (set  >= day_end)   set  -= 86400;
+
   out.dawn = rise;
   out.dusk = set;
-  // If polar day/night where cosH0 would be outside [-1,1], clamped H0 leads to edge times; still acceptable.
+
+#if LOG_LEVEL >= 3
+  char dawn_iso[24], dusk_iso[24];
+  formatIso8601UTC(out.dawn, dawn_iso, sizeof(dawn_iso));
+  formatIso8601UTC(out.dusk, dusk_iso, sizeof(dusk_iso));
+  Serial.printf("[D] Civil times UTC for %04d-%02d-%02d at lat=%.5f lon=%.5f -> dawn=%s dusk=%s\n",
+                y, m, d, (float)lat_deg, (float)lon_deg, dawn_iso, dusk_iso);
+#endif
   return out;
 }
 
@@ -435,12 +481,24 @@ static void computeTodayTomorrow(double lat, double lon, time_t now, time_t* tda
   if (mdusk) *mdusk = t2.dusk;
 }
 
+static time_t nextCivilDawnAfter(time_t now) {
+  for (int k = 0; k < 4; ++k) {
+    time_t t = now + (time_t)k * 86400;
+    struct tm tm_utc; gmtime_r(&t, &tm_utc);
+    CivilTimes c = computeCivilTimesUTC_forDay(tm_utc.tm_year + 1900, tm_utc.tm_mon + 1, tm_utc.tm_mday, kLat, kLon);
+    if (!c.valid) continue;
+    if (c.dawn > now) return c.dawn;
+  }
+  return 0;
+}
+
 // ------------------- Preferences helpers -------------------
 static void pushCsvEpochRolling(const char* key, time_t value) {
   if (value <= 0) return;
   if (!g_prefs_inited) return;
   char buf[64];
-  String cur = g_prefs.getString(key, "");
+  String cur;
+  if (g_prefs.isKey(key)) cur = g_prefs.getString(key, ""); else cur = "";
   size_t len = cur.length();
   char tmp[64]; tmp[0] = '\0';
   if (len > 0 && len < sizeof(tmp)) strncpy(tmp, cur.c_str(), sizeof(tmp));
@@ -517,6 +575,16 @@ static void ensureSchedule(time_t now) {
     g_last_compute_ymd = ymd;
     refreshNextSleeps(g_today_dusk_utc, g_tomorrow_dusk_utc);
     LOGI("[SCHED] Recomputed dawn/dusk. today: %ld/%ld, tomorrow: %ld/%ld\n", (long)g_today_dawn_utc, (long)g_today_dusk_utc, (long)g_tomorrow_dawn_utc, (long)g_tomorrow_dusk_utc);
+#if LOG_LEVEL >= 3
+    char now_iso[24], td_iso[24], ts_iso[24], nd_iso[24], ns_iso[24];
+    formatIso8601UTC(now, now_iso, sizeof(now_iso));
+    formatIso8601UTC(g_today_dawn_utc, td_iso, sizeof(td_iso));
+    formatIso8601UTC(g_today_dusk_utc, ts_iso, sizeof(ts_iso));
+    formatIso8601UTC(g_tomorrow_dawn_utc, nd_iso, sizeof(nd_iso));
+    formatIso8601UTC(g_tomorrow_dusk_utc, ns_iso, sizeof(ns_iso));
+    Serial.printf("[D] now=%s lat=%.6f lon=%.6f today.dawn=%s today.dusk=%s tomorrow.dawn=%s tomorrow.dusk=%s\n",
+                  now_iso, (float)kLat, (float)kLon, td_iso, ts_iso, nd_iso, ns_iso);
+#endif
   }
 }
 
@@ -525,10 +593,9 @@ static void trySleepIfNight(time_t now) {
   // Guard: avoid sleeping within first 20s after boot to allow NTP / stability
   if (millis() - g_boot_ms < 20000) return;
   ensureSchedule(now);
-  if (now >= g_today_dusk_utc) {
-    deepSleepUntil(g_tomorrow_dawn_utc);
-  } else if (now < g_today_dawn_utc) {
-    deepSleepUntil(g_today_dawn_utc);
+  if (now >= g_today_dusk_utc || now < g_today_dawn_utc) {
+    time_t nd = nextCivilDawnAfter(now);
+    if (nd > now) deepSleepUntil(nd);
   }
 }
 
@@ -600,8 +667,8 @@ static void handleUptime() {
 
   // Preferences arrays
   if (!g_prefs_inited) { g_prefs.begin(PREF_NS, false); g_prefs_inited = true; }
-  String wakes_csv = g_prefs.getString(PREF_KEY_LAST_WAKES, "");
-  String sleeps_csv = g_prefs.getString(PREF_KEY_NEXT_SLEEPS, "");
+  String wakes_csv = g_prefs.isKey(PREF_KEY_LAST_WAKES) ? g_prefs.getString(PREF_KEY_LAST_WAKES, "") : String("");
+  String sleeps_csv = g_prefs.isKey(PREF_KEY_NEXT_SLEEPS) ? g_prefs.getString(PREF_KEY_NEXT_SLEEPS, "") : String("");
 
   // Compose JSON
   char buf[1024];
@@ -674,6 +741,90 @@ static void handleUptime_LegacyOnly() {
                    (millis() / 1000UL), human, d, h, m, s);
   
   if (n < 0) {
+    server.send(500, "application/json", "{\"error\":\"formatting\"}");
+    return;
+  }
+  server.send(200, "application/json", buf);
+}
+
+// New endpoint that serves non-uptime status and scheduling data
+static void handleStatus() {
+  // Ensure schedule/time context is up to date
+  time_t now = time(nullptr);
+  char now_iso[24];
+  formatIso8601UTC(now, now_iso, sizeof(now_iso));
+  ensureSchedule(now);
+
+  char tdawn_iso[24]; char tdusk_iso[24];
+  char mdawn_iso[24]; char mdusk_iso[24];
+  formatIso8601UTC(g_today_dawn_utc, tdawn_iso, sizeof(tdawn_iso));
+  formatIso8601UTC(g_today_dusk_utc, tdusk_iso, sizeof(tdusk_iso));
+  formatIso8601UTC(g_tomorrow_dawn_utc, mdawn_iso, sizeof(mdawn_iso));
+  formatIso8601UTC(g_tomorrow_dusk_utc, mdusk_iso, sizeof(mdusk_iso));
+
+  const char* mode = "unknown";
+  if (timeIsValid()) {
+    if (now >= g_today_dawn_utc && now < g_today_dusk_utc) mode = "day"; else mode = "night";
+  }
+
+  char next_type[28] = "unknown"; time_t next_at = 0; uint32_t seconds_until = 0;
+  if (timeIsValid()) {
+    if (strcmp(mode, "day") == 0) { strcpy(next_type, "sleep_at_civil_dusk"); next_at = g_today_dusk_utc; }
+    else {
+      strcpy(next_type, "wake_at_civil_dawn");
+      next_at = (now < g_today_dawn_utc) ? g_today_dawn_utc : g_tomorrow_dawn_utc;
+    }
+    if (next_at > now) seconds_until = (uint32_t)(next_at - now);
+  }
+  char next_at_iso[24]; formatIso8601UTC(next_at, next_at_iso, sizeof(next_at_iso));
+
+  // Preferences arrays
+  if (!g_prefs_inited) { g_prefs.begin(PREF_NS, false); g_prefs_inited = true; }
+  String wakes_csv = g_prefs.isKey(PREF_KEY_LAST_WAKES) ? g_prefs.getString(PREF_KEY_LAST_WAKES, "") : String("");
+  String sleeps_csv = g_prefs.isKey(PREF_KEY_NEXT_SLEEPS) ? g_prefs.getString(PREF_KEY_NEXT_SLEEPS, "") : String("");
+
+  // Compose JSON (no uptime fields)
+  char buf[1024];
+  int n = 0;
+  n += snprintf(buf + n, sizeof(buf) - n, "{\"now_utc\": \"%s\", ", now_iso);
+  char last_check_iso[24]; formatIso8601UTC(g_last_ntp_check_utc, last_check_iso, sizeof(last_check_iso));
+  n += snprintf(buf + n, sizeof(buf) - n, "\"last_ntp_check_utc\": \"%s\", ", last_check_iso);
+
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"today\": {\"civil_dawn_utc\": \"%s\", \"civil_dusk_utc\": \"%s\"}, ", tdawn_iso, tdusk_iso);
+
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"boot_count\": %lu, \"schedule_basis\": \"civil_twilight_-6deg\", \"location\": {\"lat\": %.5f, \"lon\": %.5f}, ",
+                (unsigned long)g_boot_count, (float)kLat, (float)kLon);
+
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"tomorrow\": {\"civil_dawn_utc\": \"%s\", \"civil_dusk_utc\": \"%s\"}, \"mode\": \"%s\", ", mdawn_iso, mdusk_iso, mode);
+
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"next_event\": {\"type\": \"%s\", \"at_utc\": \"%s\", \"seconds_until\": %u}, ", next_type, next_at_iso, seconds_until);
+
+  auto appendIsoArray = [&](const char* key, const String& csv) {
+    n += snprintf(buf + n, sizeof(buf) - n, "\"%s\":[", key);
+    int count = 0;
+    if (csv.length() > 0) {
+      char tmp[64]; strncpy(tmp, csv.c_str(), sizeof(tmp)); tmp[sizeof(tmp)-1] = 0;
+      char* save; char* tok = strtok_r(tmp, ",", &save);
+      while (tok && count < 3) {
+        time_t t = (time_t)strtoll(tok, nullptr, 10);
+        char iso[24]; formatIso8601UTC(t, iso, sizeof(iso));
+        n += snprintf(buf + n, sizeof(buf) - n, "%s\"%s\"", (count?",":""), iso);
+        ++count; tok = strtok_r(nullptr, ",", &save);
+      }
+    }
+    n += snprintf(buf + n, sizeof(buf) - n, "]");
+  };
+
+  appendIsoArray("last_three_wakes_utc", wakes_csv);
+  n += snprintf(buf + n, sizeof(buf) - n, ", ");
+  appendIsoArray("next_three_sleeps_utc", sleeps_csv);
+  n += snprintf(buf + n, sizeof(buf) - n, "}");
+
+  if (n <= 0) {
     server.send(500, "application/json", "{\"error\":\"formatting\"}");
     return;
   }
@@ -864,9 +1015,14 @@ LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
       refreshNextSleeps(g_today_dusk_utc, g_tomorrow_dusk_utc);
       g_last_mode = 1;
     } else {
-      // Nighttime after valid NTP: defer deep sleep to loop after guard window
-      g_last_mode = 0;
-      LOGI("[MODE] Night after NTP; will sleep in loop after guard window\n");
+      // Nighttime after valid NTP: choose next future civil dawn and sleep then
+      time_t nd = nextCivilDawnAfter(now);
+      if (nd > now) {
+        LOGI("[MODE] Night after NTP; scheduling deep sleep until next dawn (%ld)\n", (long)nd);
+        deepSleepUntil(nd);
+      } else {
+        LOGW("[MODE] Night after NTP but could not find future dawn; staying awake\n");
+      }
     }
   } else {
     LOGW("[NTP] Time invalid at boot; will retry in loop (no sleep decisions yet)\n");
@@ -905,7 +1061,9 @@ LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
 
 // HTTP routes
   server.on("/", HTTP_GET, handleRoot);
-  server.on("/uptime", HTTP_GET, handleUptime);
+  // Expose uptime-only fields on /uptime, and move scheduling/status to /status
+  server.on("/uptime", HTTP_GET, handleUptime_LegacyOnly);
+  server.on("/status", HTTP_GET, handleStatus);
   if (g_i2s_ok && g_rb_ok) {
     server.on("/stream", HTTP_GET, handleStream);
   } else {

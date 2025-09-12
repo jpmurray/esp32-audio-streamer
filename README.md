@@ -12,10 +12,11 @@ Small ESP32 (Arduino) project that streams mono 16‑bit PCM from an I2S microph
     - `STREAM_WAV_ENABLE=0` → `audio/L16; rate=<Hz>; channels=1` (raw PCM)
     - `STREAM_WAV_ENABLE=1` → `audio/x-wav` (WAV header followed by PCM)
 - `GET /uptime`
-  - Returns device status and schedule as JSON.
-  - Always includes legacy uptime fields plus scheduling details.
+  - Returns uptime information only as JSON.
+  - Fields: `uptime`, `uptime_human`, `days`, `hours`, `minutes`, `seconds`
+- `GET /status`
+  - Returns device status and schedule as JSON (non-uptime fields moved from `/uptime`).
   - Fields:
-    - Legacy: `uptime`, `uptime_human`, `days`, `hours`, `minutes`, `seconds`
     - Device/location: `boot_count`, `location` { `lat`, `lon` }, `schedule_basis`
     - Time: `now_utc`, `last_ntp_check_utc` (ISO‑8601 Z)
     - Today/tomorrow: `today` { `civil_dawn_utc`, `civil_dusk_utc` }, `tomorrow` { ... }
