@@ -26,6 +26,10 @@ build_flags =
   -D PIN_I2S_SD=32                  ; SD/DOUT pin
   -D I2S_PORT_NUM=0                 ; I2S port index
 
+  ; Location (for civil dawn/dusk)
+  -D LAT=51.4630911                    ; Latitude in degrees (positive north)
+  -D LON=-3.1678763                   ; Longitude in degrees (negative west)
+  
   ; Power / stability
   -D ENABLE_BROWNOUT_DISABLE=1       ; 1=disable brownout detector, 0=leave enabled
 

@@ -1,9 +1,15 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <time.h>
+#include <Preferences.h>
+#ifndef PI
+#define PI 3.14159265358979323846
+#endif
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "driver/i2s.h"
+#include "esp_wifi.h"
 #include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -69,6 +75,11 @@
 #endif
 
 static WebServer server(SERVER_PORT);
+static Preferences g_prefs;
+static const char* const PREF_NS = "sched";
+static const char* const PREF_KEY_LAST_WAKES = "last_wakes";      // <= 15 chars
+static const char* const PREF_KEY_NEXT_SLEEPS = "next_sleeps";    // <= 15 chars
+static bool g_prefs_inited = false;
 static bool g_i2s_ok = false;
 static bool g_rb_ok = false;
 
@@ -110,6 +121,13 @@ static bool g_rb_ok = false;
 #define I2S_PORT_NUM 0
 #endif
 
+#ifndef LAT
+#define LAT 51.4630911
+#endif
+#ifndef LON
+#define LON -3.1678763
+#endif
+
 static bool g_hpf_enabled = (HPF_ENABLE != 0);
 static float g_hpf_R = 0.0f;           // computed once from cutoff
 static float g_hpf_prev_x = 0.0f;      // kept for reference/logging, not used in fast path
@@ -148,6 +166,25 @@ static int16_t pcm16_out[1024];        // legacy scratch, kept for size referenc
 static RingbufHandle_t g_ringbuf = nullptr;
 static const size_t RINGBUF_CAPACITY_BYTES = RB_CAPACITY_BYTES; // configurable via build flag
 static TaskHandle_t g_i2s_task = nullptr;
+
+// ----- Scheduling / RTC retained state -----
+RTC_DATA_ATTR uint32_t g_boot_count = 0;
+RTC_DATA_ATTR time_t g_today_dawn_utc = 0;
+RTC_DATA_ATTR time_t g_today_dusk_utc = 0;
+RTC_DATA_ATTR time_t g_tomorrow_dawn_utc = 0;
+RTC_DATA_ATTR time_t g_tomorrow_dusk_utc = 0;
+RTC_DATA_ATTR uint32_t g_last_compute_ymd = 0; // YYYYMMDD UTC
+RTC_DATA_ATTR time_t g_last_ntp_sync_utc = 0;
+RTC_DATA_ATTR time_t g_last_ntp_check_utc = 0;
+RTC_DATA_ATTR uint8_t g_last_mode = 0; // 0=unknown/night,1=day
+
+static uint32_t g_boot_ms = 0; // monotonic since boot for sleep guard
+
+static uint32_t g_next_ntp_retry_ms = 0; // millis schedule while awake
+
+// Location
+static const double kLat = (double)LAT;
+static const double kLon = (double)LON;
 
 // Dynamic index page is rendered in handleRoot() based on build flags
 // (STREAM_WAV_ENABLE, SAMPLE_RATE_HZ)
@@ -305,7 +342,320 @@ static void handleStream() {
   client.stop();
 }
 
+// ------------------- Time helpers -------------------
+static inline bool timeIsValid() {
+  time_t now = time(nullptr);
+  return now > 1577836800; // 2020-01-01
+}
+
+static void formatIso8601UTC(time_t t, char* out, size_t out_sz) {
+  if (t <= 0) { snprintf(out, out_sz, "null"); return; }
+  struct tm tm_utc;
+  gmtime_r(&t, &tm_utc);
+  // 2023-01-02T03:04:05Z
+  snprintf(out, out_sz, "%04d-%02d-%02dT%02d:%02d:%02dZ",
+           tm_utc.tm_year + 1900, tm_utc.tm_mon + 1, tm_utc.tm_mday,
+           tm_utc.tm_hour, tm_utc.tm_min, tm_utc.tm_sec);
+}
+
+static uint32_t ymdFromUtc(time_t t) {
+  struct tm tm_utc; gmtime_r(&t, &tm_utc);
+  return (uint32_t)(tm_utc.tm_year + 1900) * 10000u + (uint32_t)(tm_utc.tm_mon + 1) * 100u + (uint32_t)tm_utc.tm_mday;
+}
+
+// ------------------- NOAA solar calc -------------------
+static double deg2rad(double d) { return d * (PI / 180.0); }
+static double rad2deg(double r) { return r * (180.0 / PI); }
+
+static double clamp(double x, double a, double b) { if (x < a) return a; if (x > b) return b; return x; }
+
+// Julian Day at 0h UTC for given Y-M-D
+static double jdFromDateUTC(int y, int m, int d) {
+  if (m <= 2) { y -= 1; m += 12; }
+  int A = y / 100;
+  int B = 2 - A + A / 5;
+  double JD = floor(365.25 * (y + 4716)) + floor(30.6001 * (m + 1)) + d + B - 1524.5;
+  return JD;
+}
+
+static time_t epochFromJD(double jd) {
+  // Unix epoch starts at JD 2440587.5
+  double days = jd - 2440587.5;
+  double secs = days * 86400.0;
+  if (secs < 0) return 0;
+  return (time_t)(secs + 0.5);
+}
+
+struct CivilTimes { time_t dawn; time_t dusk; bool valid; };
+
+static CivilTimes computeCivilTimesUTC_forDay(int y, int m, int d, double lat_deg, double lon_deg) {
+  CivilTimes out; out.dawn = 0; out.dusk = 0; out.valid = true;
+  const double h0 = deg2rad(-6.0); // civil twilight
+  const double phi = deg2rad(lat_deg);
+  const double Lw = -lon_deg; // west is positive in algorithm via LON/360 term
+
+  double J0 = 2451545.0009 + (Lw / 360.0);
+  double JD = jdFromDateUTC(y, m, d);
+  double n = round(JD - J0);
+  double Jstar = J0 + n;
+  double M = deg2rad(357.5291 + 0.98560028 * (Jstar - 2451545.0));
+  double C = deg2rad(1.9148) * sin(M) + deg2rad(0.0200) * sin(2 * M) + deg2rad(0.0003) * sin(3 * M);
+  double lambda = M + C + deg2rad(102.9372) + PI; // ecliptic longitude
+  double delta = asin(sin(lambda) * sin(deg2rad(23.44)));
+  double Jtransit = Jstar + 0.0053 * sin(M) - 0.0069 * sin(2 * lambda);
+
+  double cosH0 = (sin(h0) - sin(phi) * sin(delta)) / (cos(phi) * cos(delta));
+  cosH0 = clamp(cosH0, -1.0, 1.0);
+  double H0 = acos(cosH0); // radians
+
+  double Jrise = Jtransit - H0 / (2.0 * PI);
+  double Jset  = Jtransit + H0 / (2.0 * PI);
+
+  time_t rise = epochFromJD(Jrise);
+  time_t set = epochFromJD(Jset);
+  out.dawn = rise;
+  out.dusk = set;
+  // If polar day/night where cosH0 would be outside [-1,1], clamped H0 leads to edge times; still acceptable.
+  return out;
+}
+
+static void computeTodayTomorrow(double lat, double lon, time_t now, time_t* tdawn, time_t* tdusk, time_t* mdawn, time_t* mdusk) {
+  struct tm tm_utc; gmtime_r(&now, &tm_utc);
+  int y = tm_utc.tm_year + 1900;
+  int m = tm_utc.tm_mon + 1;
+  int d = tm_utc.tm_mday;
+  CivilTimes t = computeCivilTimesUTC_forDay(y, m, d, lat, lon);
+  // tomorrow
+  time_t tmp = now + 86400;
+  struct tm tm2; gmtime_r(&tmp, &tm2);
+  CivilTimes t2 = computeCivilTimesUTC_forDay(tm2.tm_year + 1900, tm2.tm_mon + 1, tm2.tm_mday, lat, lon);
+  if (tdawn) *tdawn = t.dawn;
+  if (tdusk) *tdusk = t.dusk;
+  if (mdawn) *mdawn = t2.dawn;
+  if (mdusk) *mdusk = t2.dusk;
+}
+
+// ------------------- Preferences helpers -------------------
+static void pushCsvEpochRolling(const char* key, time_t value) {
+  if (value <= 0) return;
+  if (!g_prefs_inited) return;
+  char buf[64];
+  String cur = g_prefs.getString(key, "");
+  size_t len = cur.length();
+  char tmp[64]; tmp[0] = '\0';
+  if (len > 0 && len < sizeof(tmp)) strncpy(tmp, cur.c_str(), sizeof(tmp));
+  // parse up to 3 comma-separated values
+  time_t vals[4] = {0,0,0,0}; int count = 0;
+  if (tmp[0]) {
+    char* save; char* tok = strtok_r(tmp, ",", &save);
+    while (tok && count < 3) { vals[count++] = (time_t)strtoll(tok, nullptr, 10); tok = strtok_r(nullptr, ",", &save); }
+  }
+  // append new at end then keep last 3
+  vals[count++] = value;
+  if (count > 3) {
+    // keep last 3
+    vals[0] = vals[count-3];
+    vals[1] = vals[count-2];
+    vals[2] = vals[count-1];
+    count = 3;
+  }
+  // write back
+  int n = snprintf(buf, sizeof(buf), (count==3?"%lld,%lld,%lld": (count==2?"%lld,%lld":"%lld")),
+                   (long long)vals[0], (count>=2?(long long)vals[1]:0LL), (count>=3?(long long)vals[2]:0LL));
+  if (n > 0) g_prefs.putString(key, buf);
+}
+
+static void setCsvEpochList(const char* key, time_t a, time_t b, time_t c) {
+  if (!g_prefs_inited) return;
+  char buf[64];
+  if (a && b && c) snprintf(buf, sizeof(buf), "%lld,%lld,%lld", (long long)a, (long long)b, (long long)c);
+  else if (a && b) snprintf(buf, sizeof(buf), "%lld,%lld", (long long)a, (long long)b);
+  else if (a) snprintf(buf, sizeof(buf), "%lld", (long long)a);
+  else buf[0] = 0;
+  g_prefs.putString(key, buf);
+}
+
+// ------------------- Sleep control -------------------
+static void gracefulShutdown() {
+  // Stop I2S task
+  if (g_i2s_task) { vTaskDelete(g_i2s_task); g_i2s_task = nullptr; }
+  if (g_ringbuf) { vRingbufferDelete(g_ringbuf); g_ringbuf = nullptr; }
+  if (g_i2s_ok) { i2s_driver_uninstall(I2S_PORT); g_i2s_ok = false; }
+  // WiFi off
+  WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_OFF);
+}
+
+static void deepSleepUntil(time_t target) {
+  if (target <= 0) return;
+  time_t now = time(nullptr);
+  int64_t sec = (int64_t)target - (int64_t)now;
+  if (sec < 5) sec = 5; // minimum
+  LOGI("[SLEEP] Deep sleeping for %lld sec until %ld\n", (long long)sec, (long)target);
+  esp_sleep_enable_timer_wakeup((uint64_t)sec * 1000000ULL);
+  Serial.flush(); delay(50);
+  gracefulShutdown();
+  delay(200);
+  esp_deep_sleep_start();
+}
+
+static void refreshNextSleeps(time_t today_dusk, time_t tomorrow_dusk) {
+  // Compute dusk for +2 days for next_three_sleeps
+  time_t d2 = tomorrow_dusk;
+  if (timeIsValid() && tomorrow_dusk) {
+    time_t t = tomorrow_dusk + 86400; struct tm tm2; gmtime_r(&t, &tm2);
+    CivilTimes t2 = computeCivilTimesUTC_forDay(tm2.tm_year + 1900, tm2.tm_mon + 1, tm2.tm_mday, kLat, kLon);
+    d2 = t2.dusk;
+  }
+  setCsvEpochList(PREF_KEY_NEXT_SLEEPS, today_dusk, tomorrow_dusk, d2);
+}
+
+static void ensureSchedule(time_t now) {
+  uint32_t ymd = ymdFromUtc(now);
+  if (g_last_compute_ymd != ymd || g_today_dawn_utc == 0 || g_today_dusk_utc == 0) {
+    computeTodayTomorrow(kLat, kLon, now, &g_today_dawn_utc, &g_today_dusk_utc, &g_tomorrow_dawn_utc, &g_tomorrow_dusk_utc);
+    g_last_compute_ymd = ymd;
+    refreshNextSleeps(g_today_dusk_utc, g_tomorrow_dusk_utc);
+    LOGI("[SCHED] Recomputed dawn/dusk. today: %ld/%ld, tomorrow: %ld/%ld\n", (long)g_today_dawn_utc, (long)g_today_dusk_utc, (long)g_tomorrow_dawn_utc, (long)g_tomorrow_dusk_utc);
+  }
+}
+
+static void trySleepIfNight(time_t now) {
+  if (!timeIsValid()) return;
+  // Guard: avoid sleeping within first 20s after boot to allow NTP / stability
+  if (millis() - g_boot_ms < 20000) return;
+  ensureSchedule(now);
+  if (now >= g_today_dusk_utc) {
+    deepSleepUntil(g_tomorrow_dawn_utc);
+  } else if (now < g_today_dawn_utc) {
+    deepSleepUntil(g_today_dawn_utc);
+  }
+}
+
+static bool waitForNtp(uint32_t timeout_ms) {
+  uint32_t start = millis();
+  while ((millis() - start) < timeout_ms) {
+    if (timeIsValid()) return true;
+    delay(200);
+  }
+  return timeIsValid();
+}
+
+static void maybeSyncNtp() {
+  time_t now = time(nullptr);
+  if (!timeIsValid() || (now - g_last_ntp_sync_utc) > 86400) {
+    g_last_ntp_check_utc = now;
+    LOGI("[NTP] Sync starting...\n");
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    if (waitForNtp(15000)) {
+      g_last_ntp_sync_utc = time(nullptr);
+      LOGI("[NTP] Sync ok: %ld\n", (long)g_last_ntp_sync_utc);
+    } else {
+      LOGW("[NTP] Sync failed, will retry later\n");
+    }
+  }
+}
+
 static void handleUptime() {
+  // Legacy uptime fields
+  unsigned long total = millis() / 1000UL;
+  unsigned long d = total / 86400UL; total %= 86400UL;
+  unsigned long h = total / 3600UL;  total %= 3600UL;
+  unsigned long m = total / 60UL;    unsigned long s = total % 60UL;
+
+  char human[64];
+  size_t pos = 0;
+  if (d > 0) pos += snprintf(human + pos, sizeof(human) - pos, "%lud ", d);
+  if (d > 0 || h > 0) pos += snprintf(human + pos, sizeof(human) - pos, "%luh ", h);
+  if (d > 0 || h > 0 || m > 0) pos += snprintf(human + pos, sizeof(human) - pos, "%lum ", m);
+  snprintf(human + pos, sizeof(human) - pos, "%lus", s);
+
+  // Schedule details
+  time_t now = time(nullptr);
+  char now_iso[24]; formatIso8601UTC(now, now_iso, sizeof(now_iso));
+  ensureSchedule(now);
+
+  char tdawn_iso[24]; char tdusk_iso[24];
+  char mdawn_iso[24]; char mdusk_iso[24];
+  formatIso8601UTC(g_today_dawn_utc, tdawn_iso, sizeof(tdawn_iso));
+  formatIso8601UTC(g_today_dusk_utc, tdusk_iso, sizeof(tdusk_iso));
+  formatIso8601UTC(g_tomorrow_dawn_utc, mdawn_iso, sizeof(mdawn_iso));
+  formatIso8601UTC(g_tomorrow_dusk_utc, mdusk_iso, sizeof(mdusk_iso));
+
+  const char* mode = "unknown";
+  if (timeIsValid()) {
+    if (now >= g_today_dawn_utc && now < g_today_dusk_utc) mode = "day"; else mode = "night";
+  }
+
+  char next_type[28] = "unknown"; time_t next_at = 0; uint32_t seconds_until = 0;
+  if (timeIsValid()) {
+    if (strcmp(mode, "day") == 0) { strcpy(next_type, "sleep_at_civil_dusk"); next_at = g_today_dusk_utc; }
+    else {
+      strcpy(next_type, "wake_at_civil_dawn");
+      next_at = (now < g_today_dawn_utc) ? g_today_dawn_utc : g_tomorrow_dawn_utc;
+    }
+    if (next_at > now) seconds_until = (uint32_t)(next_at - now);
+  }
+  char next_at_iso[24]; formatIso8601UTC(next_at, next_at_iso, sizeof(next_at_iso));
+
+  // Preferences arrays
+  if (!g_prefs_inited) { g_prefs.begin(PREF_NS, false); g_prefs_inited = true; }
+  String wakes_csv = g_prefs.getString(PREF_KEY_LAST_WAKES, "");
+  String sleeps_csv = g_prefs.getString(PREF_KEY_NEXT_SLEEPS, "");
+
+  // Compose JSON
+  char buf[1024];
+  int n = 0;
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "{\"uptime\": %lu, \"uptime_human\": \"%s\", \"days\": %lu, \"hours\": %lu, \"minutes\": %lu, \"seconds\": %lu, ",
+                (millis() / 1000UL), human, d, h, m, s);
+
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"now_utc\": \"%s\", ", now_iso);
+  char last_check_iso[24]; formatIso8601UTC(g_last_ntp_check_utc, last_check_iso, sizeof(last_check_iso));
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"last_ntp_check_utc\": \"%s\", ", last_check_iso);
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"today\": {\"civil_dawn_utc\": \"%s\", \"civil_dusk_utc\": \"%s\"}, ", tdawn_iso, tdusk_iso);
+
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"boot_count\": %lu, \"schedule_basis\": \"civil_twilight_-6deg\", \"location\": {\"lat\": %.5f, \"lon\": %.5f}, ",
+                (unsigned long)g_boot_count, (float)kLat, (float)kLon);
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"tomorrow\": {\"civil_dawn_utc\": \"%s\", \"civil_dusk_utc\": \"%s\"}, \"mode\": \"%s\", ", mdawn_iso, mdusk_iso, mode);
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"next_event\": {\"type\": \"%s\", \"at_utc\": \"%s\", \"seconds_until\": %u}, ", next_type, next_at_iso, seconds_until);
+
+  // Arrays: convert CSV to ISO array for output
+  auto appendIsoArray = [&](const char* key, const String& csv) {
+    n += snprintf(buf + n, sizeof(buf) - n, "\"%s\":[", key);
+    int count = 0;
+    if (csv.length() > 0) {
+      char tmp[64]; strncpy(tmp, csv.c_str(), sizeof(tmp)); tmp[sizeof(tmp)-1] = 0;
+      char* save; char* tok = strtok_r(tmp, ",", &save);
+      while (tok && count < 3) {
+        time_t t = (time_t)strtoll(tok, nullptr, 10);
+        char iso[24]; formatIso8601UTC(t, iso, sizeof(iso));
+        n += snprintf(buf + n, sizeof(buf) - n, "%s\"%s\"", (count?",":""), iso);
+        ++count; tok = strtok_r(nullptr, ",", &save);
+      }
+    }
+    n += snprintf(buf + n, sizeof(buf) - n, "]");
+  };
+
+  appendIsoArray("last_three_wakes_utc", wakes_csv);
+  n += snprintf(buf + n, sizeof(buf) - n, ", ");
+  appendIsoArray("next_three_sleeps_utc", sleeps_csv);
+  n += snprintf(buf + n, sizeof(buf) - n, "}");
+
+  if (n <= 0) {
+    server.send(500, "application/json", "{\"error\":\"formatting\"}");
+    return;
+  }
+  server.send(200, "application/json", buf);
+}
+
+static void handleUptime_LegacyOnly() {
   unsigned long total = millis() / 1000UL;
   unsigned long d = total / 86400UL; total %= 86400UL;
   unsigned long h = total / 3600UL;  total %= 3600UL;
@@ -322,6 +672,7 @@ static void handleUptime() {
   int n = snprintf(buf, sizeof(buf),
                    "{\"uptime\": %lu, \"uptime_human\": \"%s\", \"days\": %lu, \"hours\": %lu, \"minutes\": %lu, \"seconds\": %lu}",
                    (millis() / 1000UL), human, d, h, m, s);
+  
   if (n < 0) {
     server.send(500, "application/json", "{\"error\":\"formatting\"}");
     return;
@@ -426,11 +777,17 @@ static wifi_power_t mapTxPowerDbm(int dbm) {
 static void connectWiFiBlocking() {
   const char* ssid = WIFI_SSID;
   const char* pass = WIFI_PASS;
-  WiFi.mode(WIFI_STA);
+  // Ensure clean Wi‑Fi init after deep sleep / resets
   WiFi.persistent(false);
-  WiFi.setSleep(false);
   WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_OFF);
   delay(200);
+  // Extra safety: stop/deinit underlying driver if previously initialized
+  esp_wifi_stop();
+  esp_wifi_deinit();
+  delay(100);
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
 
   if (String(WIFI_SSID) == "YOUR_SSID" || String(WIFI_PASS) == "YOUR_PASSWORD") {
     LOGW("WIFI_SSID/WIFI_PASS are placeholders.\n");
@@ -439,23 +796,7 @@ static void connectWiFiBlocking() {
 
   LOGI("Connecting to Wi‑Fi SSID: '%s'\n", ssid);
 
-  // Optional: quick scan to verify SSID is visible
-  LOGI("Scanning for networks...\n");
-  int n = WiFi.scanNetworks(/*async=*/false, /*hidden=*/true);
-  if (n <= 0) {
-    LOGW("[WiFi] No networks found\n");
-  } else {
-    bool seen = false;
-    for (int i = 0; i < n; ++i) {
-      String s = WiFi.SSID(i);
-      int32_t rssi = WiFi.RSSI(i);
-      if (s == ssid) {
-        seen = true;
-        LOGI("[WiFi] Found target SSID '%s' RSSI=%d dBm\n", s.c_str(), (int)rssi);
-      }
-    }
-    if (!seen) LOGW("[WiFi] Target SSID not seen in scan (may still connect)\n");
-  }
+  // Skip pre-scan to reduce init complexity and speed up first connection
 
   // Set TX power from build flag, mapped to closest supported step
   wifi_power_t txp = mapTxPowerDbm((int)WIFI_TX_POWER_DBM);
@@ -495,7 +836,11 @@ void setup() {
   Serial.begin(115200);
   delay(200);
   LOG_NL();
-  LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
+LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
+  g_boot_ms = millis();
+  g_boot_count++;
+  if (!g_prefs_inited) { g_prefs.begin(PREF_NS, false); g_prefs_inited = true; }
+  setenv("TZ", "UTC0", 1); tzset();
 
   // Optional: brownout workaround (can be disabled via build flag)
 #if ENABLE_BROWNOUT_DISABLE
@@ -505,7 +850,27 @@ void setup() {
   LOGI("[PMIC] Brownout workaround disabled (leaving detector enabled)\n");
 #endif
 
+  // Bring up Wi‑Fi first to obtain valid time via NTP
   connectWiFiBlocking();
+
+  // Initial NTP sync and schedule (post Wi‑Fi)
+  maybeSyncNtp();
+  time_t now = time(nullptr);
+  if (timeIsValid()) {
+    ensureSchedule(now);
+    if (now >= g_today_dawn_utc && now < g_today_dusk_utc) {
+      // Daytime: record wake and continue
+      pushCsvEpochRolling(PREF_KEY_LAST_WAKES, now);
+      refreshNextSleeps(g_today_dusk_utc, g_tomorrow_dusk_utc);
+      g_last_mode = 1;
+    } else {
+      // Nighttime after valid NTP: defer deep sleep to loop after guard window
+      g_last_mode = 0;
+      LOGI("[MODE] Night after NTP; will sleep in loop after guard window\n");
+    }
+  } else {
+    LOGW("[NTP] Time invalid at boot; will retry in loop (no sleep decisions yet)\n");
+  }
 
   // I2S mic
   g_i2s_ok = initI2SMic();
@@ -552,5 +917,20 @@ void setup() {
 
 void loop() {
   server.handleClient();
+
+  // Periodic NTP sync while awake
+  uint32_t now_ms = millis();
+  if (now_ms - g_next_ntp_retry_ms > 60000) { // every 60s
+    g_next_ntp_retry_ms = now_ms;
+    maybeSyncNtp();
+  }
+
+  // Recompute schedule daily and sleep at dusk
+  time_t nowt = time(nullptr);
+  if (timeIsValid()) {
+    ensureSchedule(nowt);
+    trySleepIfNight(nowt);
+  }
+
   delay(2);
 }

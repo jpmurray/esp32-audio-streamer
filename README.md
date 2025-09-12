@@ -12,18 +12,29 @@ Small ESP32 (Arduino) project that streams mono 16‑bit PCM from an I2S microph
     - `STREAM_WAV_ENABLE=0` → `audio/L16; rate=<Hz>; channels=1` (raw PCM)
     - `STREAM_WAV_ENABLE=1` → `audio/x-wav` (WAV header followed by PCM)
 - `GET /uptime`
-  - Returns device uptime as JSON.
-  - Example:
-    ```json
-    {
-      "uptime": 93784,
-      "uptime_human": "1d 2h 3m 4s",
-      "days": 1,
-      "hours": 2,
-      "minutes": 3,
-      "seconds": 4
-    }
-    ```
+  - Returns device status and schedule as JSON.
+  - Always includes legacy uptime fields plus scheduling details.
+  - Fields:
+    - Legacy: `uptime`, `uptime_human`, `days`, `hours`, `minutes`, `seconds`
+    - Device/location: `boot_count`, `location` { `lat`, `lon` }, `schedule_basis`
+    - Time: `now_utc`, `last_ntp_check_utc` (ISO‑8601 Z)
+    - Today/tomorrow: `today` { `civil_dawn_utc`, `civil_dusk_utc` }, `tomorrow` { ... }
+    - Mode/event: `mode` (day|night), `next_event` { `type`, `at_utc`, `seconds_until` }
+    - History: `last_three_wakes_utc`, `next_three_sleeps_utc` (arrays of ISO‑8601)
+
+## Power Scheduling
+
+- Awake from civil dawn → civil dusk; deep sleep at night (civil dusk → next dawn).
+- Computes dawn/dusk daily using a lightweight NOAA/Meeus method (sun altitude −6°), UTC only.
+- Syncs NTP at boot and at least every 24h while awake. If time is invalid, retries every 60s and defers sleep decisions until valid.
+- Before deep sleep, shuts down I2S producer, ring buffer, I2S driver and Wi‑Fi.
+
+## Persistence
+
+- RTC (retained across deep sleep): boot counter, cached dawn/dusk (today/tomorrow), last compute day (UTC YMD), last NTP sync time.
+- NVS (Preferences namespace `sched`):
+  - `last_wakes` (CSV of up to 3 epoch seconds) → exposed as `last_three_wakes_utc`
+  - `next_three_sleeps` (CSV of up to 3 epoch seconds) → exposed as `next_three_sleeps_utc`
 
 ## Build Flags (PlatformIO)
 
@@ -46,6 +57,9 @@ Add these in `local_env.ini` via `build_flags` (see `local_env.ini.example`). De
   - `-D I2S_PORT_NUM=0` — I2S port index (default 0).
 - Stream format
   - `-D STREAM_WAV_ENABLE=0` — 0: raw `audio/L16`, 1: `audio/x-wav` header (default 0).
+- Location
+  - `-D LAT=51.4630911` — latitude in degrees (positive north). If omitted, defaults to 51.4630911.
+  - `-D LON=-3.1678763` — longitude in degrees (negative west). If omitted, defaults to -3.1678763.
 - Buffering
   - `-D CHUNK_FRAMES=1024` — producer chunk size in frames (default 1024).
   - `-D RB_CAPACITY_BYTES=65536` — ring buffer size in bytes (default 65536).
