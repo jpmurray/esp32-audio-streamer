@@ -74,6 +74,11 @@
 #define STREAM_WAV_ENABLE 0   // 0 = raw audio/L16, 1 = audio/x-wav with header
 #endif
 
+// Local timezone (POSIX TZ string). Set via extra configs/local_env.ini.
+#ifndef LOCAL_TZ
+#define LOCAL_TZ "UTC0"
+#endif
+
 static WebServer server(SERVER_PORT);
 static Preferences g_prefs;
 static const char* const PREF_NS = "sched";
@@ -358,6 +363,25 @@ static void formatIso8601UTC(time_t t, char* out, size_t out_sz) {
            tm_utc.tm_hour, tm_utc.tm_min, tm_utc.tm_sec);
 }
 
+static void formatIso8601Local(time_t t, char* out, size_t out_sz) {
+  if (t <= 0) { snprintf(out, out_sz, "null"); return; }
+  struct tm tm_loc;
+  localtime_r(&t, &tm_loc);
+  char base[24];
+  snprintf(base, sizeof(base), "%04d-%02d-%02dT%02d:%02d:%02d",
+           tm_loc.tm_year + 1900, tm_loc.tm_mon + 1, tm_loc.tm_mday,
+           tm_loc.tm_hour, tm_loc.tm_min, tm_loc.tm_sec);
+  char zraw[8] = {0};
+  char zfmt[8] = {0};
+  size_t n = strftime(zraw, sizeof(zraw), "%z", &tm_loc); // +hhmm
+  if (n >= 5) {
+    zfmt[0] = zraw[0]; zfmt[1] = zraw[1]; zfmt[2] = zraw[2]; zfmt[3] = ':'; zfmt[4] = zraw[3]; zfmt[5] = zraw[4]; zfmt[6] = 0;
+  } else {
+    strncpy(zfmt, "+00:00", sizeof(zfmt)); zfmt[sizeof(zfmt)-1] = 0;
+  }
+  snprintf(out, out_sz, "%s%s", base, zfmt);
+}
+
 static uint32_t ymdFromUtc(time_t t) {
   struct tm tm_utc; gmtime_r(&t, &tm_utc);
   return (uint32_t)(tm_utc.tm_year + 1900) * 10000u + (uint32_t)(tm_utc.tm_mon + 1) * 100u + (uint32_t)tm_utc.tm_mday;
@@ -613,7 +637,8 @@ static void maybeSyncNtp() {
   if (!timeIsValid() || (now - g_last_ntp_sync_utc) > 86400) {
     g_last_ntp_check_utc = now;
     LOGI("[NTP] Sync starting...\n");
-    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+    // Configure SNTP with timezone rules so localtime() reflects LOCAL_TZ
+    configTzTime(LOCAL_TZ, "pool.ntp.org", "time.nist.gov");
     if (waitForNtp(15000)) {
       g_last_ntp_sync_utc = time(nullptr);
       LOGI("[NTP] Sync ok: %ld\n", (long)g_last_ntp_sync_utc);
@@ -784,14 +809,24 @@ static void handleStatus() {
   String sleeps_csv = g_prefs.isKey(PREF_KEY_NEXT_SLEEPS) ? g_prefs.getString(PREF_KEY_NEXT_SLEEPS, "") : String("");
 
   // Compose JSON (no uptime fields)
-  char buf[1024];
+  char buf[1536];
   int n = 0;
   n += snprintf(buf + n, sizeof(buf) - n, "{\"now_utc\": \"%s\", ", now_iso);
   char last_check_iso[24]; formatIso8601UTC(g_last_ntp_check_utc, last_check_iso, sizeof(last_check_iso));
   n += snprintf(buf + n, sizeof(buf) - n, "\"last_ntp_check_utc\": \"%s\", ", last_check_iso);
+  // Local time variants
+  char now_local[32]; formatIso8601Local(now, now_local, sizeof(now_local));
+  char last_check_local[32]; formatIso8601Local(g_last_ntp_check_utc, last_check_local, sizeof(last_check_local));
+  n += snprintf(buf + n, sizeof(buf) - n, "\"now_local\": \"%s\", ", now_local);
+  n += snprintf(buf + n, sizeof(buf) - n, "\"last_ntp_check_local\": \"%s\", ", last_check_local);
 
   n += snprintf(buf + n, sizeof(buf) - n,
                 "\"today\": {\"civil_dawn_utc\": \"%s\", \"civil_dusk_utc\": \"%s\"}, ", tdawn_iso, tdusk_iso);
+  char tdawn_local[32]; char tdusk_local[32];
+  formatIso8601Local(g_today_dawn_utc, tdawn_local, sizeof(tdawn_local));
+  formatIso8601Local(g_today_dusk_utc, tdusk_local, sizeof(tdusk_local));
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"today_local\": {\"civil_dawn_local\": \"%s\", \"civil_dusk_local\": \"%s\"}, ", tdawn_local, tdusk_local);
 
   n += snprintf(buf + n, sizeof(buf) - n,
                 "\"boot_count\": %lu, \"schedule_basis\": \"civil_twilight_-6deg\", \"location\": {\"lat\": %.5f, \"lon\": %.5f}, ",
@@ -799,9 +834,20 @@ static void handleStatus() {
 
   n += snprintf(buf + n, sizeof(buf) - n,
                 "\"tomorrow\": {\"civil_dawn_utc\": \"%s\", \"civil_dusk_utc\": \"%s\"}, \"mode\": \"%s\", ", mdawn_iso, mdusk_iso, mode);
+  char mdawn_local[32]; char mdusk_local[32];
+  formatIso8601Local(g_tomorrow_dawn_utc, mdawn_local, sizeof(mdawn_local));
+  formatIso8601Local(g_tomorrow_dusk_utc, mdusk_local, sizeof(mdusk_local));
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"tomorrow_local\": {\"civil_dawn_local\": \"%s\", \"civil_dusk_local\": \"%s\"}, ", mdawn_local, mdusk_local);
 
   n += snprintf(buf + n, sizeof(buf) - n,
                 "\"next_event\": {\"type\": \"%s\", \"at_utc\": \"%s\", \"seconds_until\": %u}, ", next_type, next_at_iso, seconds_until);
+  char next_at_local[32]; formatIso8601Local(next_at, next_at_local, sizeof(next_at_local));
+  n += snprintf(buf + n, sizeof(buf) - n,
+                "\"next_event_local\": {\"type\": \"%s\", \"at_local\": \"%s\"}, ", next_type, next_at_local);
+
+  // Report configured timezone info
+  n += snprintf(buf + n, sizeof(buf) - n, "\"timezone\": {\"posix\": \"%s\"}, ", LOCAL_TZ);
 
   auto appendIsoArray = [&](const char* key, const String& csv) {
     n += snprintf(buf + n, sizeof(buf) - n, "\"%s\":[", key);
@@ -822,6 +868,25 @@ static void handleStatus() {
   appendIsoArray("last_three_wakes_utc", wakes_csv);
   n += snprintf(buf + n, sizeof(buf) - n, ", ");
   appendIsoArray("next_three_sleeps_utc", sleeps_csv);
+
+  // Localized arrays
+  auto appendIsoArrayLocal = [&](const char* key, const String& csv) {
+    n += snprintf(buf + n, sizeof(buf) - n, ", \"%s\":[", key);
+    int count = 0;
+    if (csv.length() > 0) {
+      char tmp[64]; strncpy(tmp, csv.c_str(), sizeof(tmp)); tmp[sizeof(tmp)-1] = 0;
+      char* save; char* tok = strtok_r(tmp, ",", &save);
+      while (tok && count < 3) {
+        time_t t = (time_t)strtoll(tok, nullptr, 10);
+        char iso[32]; formatIso8601Local(t, iso, sizeof(iso));
+        n += snprintf(buf + n, sizeof(buf) - n, "%s\"%s\"", (count?",":""), iso);
+        ++count; tok = strtok_r(nullptr, ",", &save);
+      }
+    }
+    n += snprintf(buf + n, sizeof(buf) - n, "]");
+  };
+  appendIsoArrayLocal("last_three_wakes_local", wakes_csv);
+  appendIsoArrayLocal("next_three_sleeps_local", sleeps_csv);
   n += snprintf(buf + n, sizeof(buf) - n, "}");
 
   if (n <= 0) {
@@ -991,7 +1056,7 @@ LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
   g_boot_ms = millis();
   g_boot_count++;
   if (!g_prefs_inited) { g_prefs.begin(PREF_NS, false); g_prefs_inited = true; }
-  setenv("TZ", "UTC0", 1); tzset();
+  setenv("TZ", LOCAL_TZ, 1); tzset();
 
   // Optional: brownout workaround (can be disabled via build flag)
 #if ENABLE_BROWNOUT_DISABLE

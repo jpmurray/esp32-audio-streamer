@@ -36,6 +36,13 @@ build_flags =
   ; HTTP server
   -D SERVER_PORT=80                 ; HTTP port
 
+  ; Local timezone (POSIX TZ string)
+  ; Examples:
+  ;   EST5EDT,M3.2.0/2,M11.1.0/2   (US Eastern with DST)
+  ;   CET-1CEST,M3.5.0/2,M10.5.0/3 (Central Europe with DST)
+  ;   UTC0                          (UTC)
+  '-D LOCAL_TZ="UTC0"'
+
   ; Logging level (compile-time)
   ; 1 = errors only, 2 = info+warn+error, 3 = verbose/debug
   -D LOG_LEVEL=2                    ; 1=errors, 2=info/warn, 3=debug

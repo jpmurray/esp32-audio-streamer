@@ -16,12 +16,14 @@ Small ESP32 (Arduino) project that streams mono 16‑bit PCM from an I2S microph
   - Fields: `uptime`, `uptime_human`, `days`, `hours`, `minutes`, `seconds`
 - `GET /status`
   - Returns device status and schedule as JSON (non-uptime fields moved from `/uptime`).
+  - Includes both UTC and local timezone fields (local TZ set via `LOCAL_TZ`).
   - Fields:
     - Device/location: `boot_count`, `location` { `lat`, `lon` }, `schedule_basis`
-    - Time: `now_utc`, `last_ntp_check_utc` (ISO‑8601 Z)
-    - Today/tomorrow: `today` { `civil_dawn_utc`, `civil_dusk_utc` }, `tomorrow` { ... }
-    - Mode/event: `mode` (day|night), `next_event` { `type`, `at_utc`, `seconds_until` }
-    - History: `last_three_wakes_utc`, `next_three_sleeps_utc` (arrays of ISO‑8601)
+    - Time: `now_utc`, `last_ntp_check_utc`; local variants: `now_local`, `last_ntp_check_local`
+    - Today/tomorrow: `today` { `civil_dawn_utc`, `civil_dusk_utc` }, `today_local` { `civil_dawn_local`, `civil_dusk_local` }, and same for `tomorrow`/`tomorrow_local`
+    - Mode/event: `mode` (day|night), `next_event` { `type`, `at_utc`, `seconds_until` }, plus `next_event_local` { `type`, `at_local` }
+    - History: `last_three_wakes_utc`, `next_three_sleeps_utc`, and local arrays `last_three_wakes_local`, `next_three_sleeps_local`
+    - Timezone info: `timezone` { `posix` }
 
 ## Power Scheduling
 
@@ -68,6 +70,8 @@ Add these in `local_env.ini` via `build_flags` (see `local_env.ini.example`). De
 - Server & logging
   - `-D SERVER_PORT=80` — HTTP port (default 80).
   - `-D LOG_LEVEL=2` — 1: errors, 2: info/warn/error, 3: debug (default 2).
+- Local timezone
+  - `-D LOCAL_TZ="UTC0"` — POSIX TZ string for local time (default `UTC0`). Examples: `EST5EDT,M3.2.0/2,M11.1.0/2`, `CET-1CEST,M3.5.0/2,M10.5.0/3`.
 - Power / stability
   - `-D ENABLE_BROWNOUT_DISABLE=1` — 1: disable brownout detector (workaround), 0: leave enabled (default 1).
 
