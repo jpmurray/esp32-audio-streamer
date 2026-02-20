@@ -31,6 +31,7 @@ build_flags =
   -D LON=-3.1678763                   ; Longitude in degrees (negative west)
   
   ; Power / stability
+  -D ENABLE_POWER_SCHEDULING=1       ; 1=deep sleep at night, 0=run continuously
   -D ENABLE_BROWNOUT_DISABLE=1       ; 1=disable brownout detector, 0=leave enabled
 
   ; HTTP server

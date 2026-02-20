@@ -62,6 +62,10 @@
 #define WIFI_TX_POWER_DBM 15
 #endif
 
+#ifndef ENABLE_POWER_SCHEDULING
+#define ENABLE_POWER_SCHEDULING 1
+#endif
+
 #ifndef ENABLE_BROWNOUT_DISABLE
 #define ENABLE_BROWNOUT_DISABLE 1
 #endif
@@ -1072,6 +1076,7 @@ LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
   // Initial NTP sync and schedule (post Wi‑Fi)
   maybeSyncNtp();
   time_t now = time(nullptr);
+#if ENABLE_POWER_SCHEDULING
   if (timeIsValid()) {
     ensureSchedule(now);
     if (now >= g_today_dawn_utc && now < g_today_dusk_utc) {
@@ -1092,6 +1097,7 @@ LOGI("Booting ESP32 Audio Streamer (Step 1: Wi‑Fi + HTTP)\n");
   } else {
     LOGW("[NTP] Time invalid at boot; will retry in loop (no sleep decisions yet)\n");
   }
+#endif
 
   // I2S mic
   g_i2s_ok = initI2SMic();
@@ -1149,11 +1155,13 @@ void loop() {
   }
 
   // Recompute schedule daily and sleep at dusk
+#if ENABLE_POWER_SCHEDULING
   time_t nowt = time(nullptr);
   if (timeIsValid()) {
     ensureSchedule(nowt);
     trySleepIfNight(nowt);
   }
+#endif
 
   delay(2);
 }
