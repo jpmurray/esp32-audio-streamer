@@ -73,6 +73,7 @@ Add these in `local_env.ini` via `build_flags` (see `local_env.ini.example`). De
 - Local timezone
   - `-D LOCAL_TZ="UTC0"` — POSIX TZ string for local time (default `UTC0`). Examples: `EST5EDT,M3.2.0/2,M11.1.0/2`, `CET-1CEST,M3.5.0/2,M10.5.0/3`.
 - Power / stability
+  - `-D ENABLE_POWER_SCHEDULING=1` - 1: put the board into deep sleep at night, 0: run continuously (default 1).
   - `-D ENABLE_BROWNOUT_DISABLE=1` — 1: disable brownout detector (workaround), 0: leave enabled (default 1).
 
 ## Notes
