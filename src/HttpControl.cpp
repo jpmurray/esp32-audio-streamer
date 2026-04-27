@@ -153,7 +153,7 @@ static void handleApiAudioStatus(WebServer& server) {
 
     AudioMetrics m = audioPipeline_getMetrics();
 
-    char buf[640]; int n = 0;
+    char buf[800]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{"
         "\"i2s_ok\":%s,"
@@ -171,7 +171,10 @@ static void handleApiAudioStatus(WebServer& server) {
         "\"clip_count\":%lu,"
         "\"clipped_last_block\":%s,"
         "\"i2s_error_count\":%lu,"
-        "\"rb_drop_count\":%lu"
+        "\"rb_drop_count\":%lu,"
+        "\"stream_tx_bytes\":%lu,"
+        "\"stream_write_stalls\":%lu,"
+        "\"stream_timeout_count\":%lu"
         "}",
         g_i2s_ok     ? "true" : "false",
         g_rb_ok      ? "true" : "false",
@@ -188,7 +191,10 @@ static void handleApiAudioStatus(WebServer& server) {
         (unsigned long)m.clip_count,
         m.clipped_last_block ? "true" : "false",
         (unsigned long)m.i2s_error_count,
-        (unsigned long)m.rb_drop_count
+        (unsigned long)m.rb_drop_count,
+        (unsigned long)g_stream_tx_bytes,
+        (unsigned long)g_stream_write_stalls,
+        (unsigned long)g_stream_timeout_count
     );
 
     if (n <= 0) { server.send(500, "application/json", "{\"error\":\"formatting\"}"); return; }
@@ -410,6 +416,21 @@ static void handleApiRestartAudio(WebServer& server) {
     if (!csrfOk(server)) { rejectCsrf(server); return; }
     LOGI("restart-audio requested\n");
     server.send(200, "application/json", "{\"ok\":true,\"action\":\"restart-audio\"}");
+    // Signal the stream loop to exit cleanly before tearing down the pipeline.
+    // This prevents a race where audioPipeline_stop() destroys the ring buffer
+    // while the stream task is still reading from it.
+    if (g_stream_active) {
+        g_stream_stop_requested = true;
+        LOGI("restart-audio: waiting for stream session to drain\n");
+        // Wait up to 2 s for the stream loop to see the flag and exit.
+        uint32_t wait_start = millis();
+        while (g_stream_active && (millis() - wait_start) < 2000) {
+            delay(20);
+        }
+        if (g_stream_active) {
+            LOGW("restart-audio: stream session did not drain in time, proceeding\n");
+        }
+    }
     delay(50);
     audioPipeline_stop();
     delay(100);

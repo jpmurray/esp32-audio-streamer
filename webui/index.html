@@ -131,6 +131,9 @@ audio{width:100%;margin:.5rem 0;height:36px;accent-color:#2563eb}
     <div class="row"><span class="lbl">Clipped last block</span><span class="val" id="au-clip-last">—</span></div>
     <div class="row"><span class="lbl">I2S errors</span><span class="val" id="au-i2s-err">—</span></div>
     <div class="row"><span class="lbl">RB drops</span><span class="val" id="au-rb-drop">—</span></div>
+    <div class="row"><span class="lbl">TX bytes</span><span class="val" id="au-tx-bytes">—</span></div>
+    <div class="row"><span class="lbl">Write stalls</span><span class="val" id="au-write-stalls">—</span></div>
+    <div class="row"><span class="lbl">Stream timeouts</span><span class="val" id="au-timeouts">—</span></div>
   </div>
 
   <!-- Performance -->
@@ -380,6 +383,19 @@ function fetchAudioStatus() {
     document.getElementById('au-rb-drop').innerHTML = rbDrop > 0
       ? '<span class="badge warn">'+rbDrop+'</span>'
       : '<span>'+rbDrop+'</span>';
+
+    var txBytes = d.stream_tx_bytes||0;
+    document.getElementById('au-tx-bytes').textContent = fmtBytes(txBytes);
+
+    var stalls = d.stream_write_stalls||0;
+    document.getElementById('au-write-stalls').innerHTML = stalls > 0
+      ? '<span class="badge warn">'+stalls+'</span>'
+      : '<span>'+stalls+'</span>';
+
+    var timeouts = d.stream_timeout_count||0;
+    document.getElementById('au-timeouts').innerHTML = timeouts > 0
+      ? '<span class="badge warn">'+timeouts+'</span>'
+      : '<span>'+timeouts+'</span>';
   });
 }
 

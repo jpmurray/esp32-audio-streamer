@@ -66,10 +66,26 @@
 #endif
 
 // ------------------------------------------------------------
+// Hardening tunables
+// Consecutive zero-byte writes before we give up on a stalled client.
+#ifndef STREAM_WRITE_STALL_LIMIT
+#define STREAM_WRITE_STALL_LIMIT 200
+#endif
+// Max consecutive ring-buffer receive timeouts (each 1 s) before treating
+// the session as idle/dead and exiting.
+#ifndef STREAM_IDLE_TIMEOUT_COUNT
+#define STREAM_IDLE_TIMEOUT_COUNT 5
+#endif
+
+// ------------------------------------------------------------
 // Module state
 // ------------------------------------------------------------
 volatile bool     g_stream_active        = false;
 volatile uint32_t g_stream_connect_count = 0;
+volatile uint32_t g_stream_tx_bytes      = 0;
+volatile uint32_t g_stream_write_stalls  = 0;
+volatile uint32_t g_stream_timeout_count = 0;
+volatile bool     g_stream_stop_requested = false;
 
 static WebServer  s_stream_server(STREAM_PORT);
 static TaskHandle_t s_stream_task = nullptr;
@@ -83,7 +99,12 @@ static void handleStream() {
         return;
     }
 
+    // Reset per-session transmit counters.
+    g_stream_tx_bytes     = 0;
+    g_stream_write_stalls = 0;
+
     g_stream_active = true;
+    g_stream_stop_requested = false;
     ++g_stream_connect_count;
 
     WiFiClient client = s_stream_server.client();
@@ -130,26 +151,73 @@ static void handleStream() {
         client.write(hdr, sizeof(hdr));
     }
 
-    while (client.connected()) {
+    // ----------------------------------------------------------------
+    // Main streaming loop
+    // ----------------------------------------------------------------
+    int idle_count = 0;  // consecutive ring-buffer receive timeouts
+
+    while (client.connected() && !g_stream_stop_requested) {
         size_t item_size = 0;
         int16_t* chunk = (int16_t*)xRingbufferReceive(g_ringbuf, &item_size, pdMS_TO_TICKS(1000));
-        if (!chunk) { yield(); continue; }
+        if (!chunk) {
+            // Ring buffer receive timed out — no audio produced yet or pipeline
+            // is restarting.  Count consecutive idle windows and bail out if
+            // the session has been idle too long.
+            ++idle_count;
+            if (idle_count >= STREAM_IDLE_TIMEOUT_COUNT) {
+                LOGW("Stream idle timeout (%d s), closing client\n",
+                     (int)STREAM_IDLE_TIMEOUT_COUNT);
+                ++g_stream_timeout_count;
+                break;
+            }
+            yield();
+            continue;
+        }
+        idle_count = 0;  // got data — reset idle window
 
         size_t frames = item_size / sizeof(int16_t);
         audioPipeline_applyHPF(chunk, frames);
 
         const uint8_t* p = reinterpret_cast<const uint8_t*>(chunk);
         size_t to_write = item_size;
-        while (to_write > 0 && client.connected()) {
+        int stall_count = 0;  // consecutive zero-byte writes this chunk
+
+        while (to_write > 0 && client.connected() && !g_stream_stop_requested) {
             size_t n = client.write(p, to_write);
-            if (n == 0) { delay(1); } else { p += n; to_write -= n; }
+            if (n == 0) {
+                ++stall_count;
+                ++g_stream_write_stalls;
+                if (stall_count >= STREAM_WRITE_STALL_LIMIT) {
+                    LOGW("Stream write stalled (%d retries), closing client\n",
+                         (int)STREAM_WRITE_STALL_LIMIT);
+                    ++g_stream_timeout_count;
+                    to_write = 0;  // force inner loop exit
+                    // Signal outer loop to exit too by faking disconnect.
+                    client.stop();
+                    break;
+                }
+                delay(1);
+            } else {
+                stall_count = 0;
+                p += n;
+                to_write -= n;
+                g_stream_tx_bytes += (uint32_t)n;
+            }
             yield();
         }
         vRingbufferReturnItem(g_ringbuf, (void*)chunk);
         yield();
     }
+
+    // ----------------------------------------------------------------
+    // Session cleanup
+    // ----------------------------------------------------------------
     client.stop();
     g_stream_active = false;
+    g_stream_stop_requested = false;  // clear for next session
+    LOGI("Stream session ended (tx_bytes=%lu write_stalls=%lu)\n",
+         (unsigned long)g_stream_tx_bytes,
+         (unsigned long)g_stream_write_stalls);
 }
 
 // ------------------------------------------------------------
