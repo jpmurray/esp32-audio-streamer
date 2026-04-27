@@ -33,6 +33,12 @@ build_flags =
   ; Power / stability
   -D ENABLE_BROWNOUT_DISABLE=1       ; 1=disable brownout detector, 0=leave enabled
 
+  ; Deep sleep (default: enabled)
+  ; Set to 0 to prevent the firmware from ever calling esp_deep_sleep_start().
+  ; The device will stay awake at night and log a message instead of sleeping.
+  ; Useful for local testing / serial debugging.
+  ; -D ENABLE_DEEP_SLEEP=0           ; uncomment to disable deep sleep
+
   ; HTTP server
   -D SERVER_PORT=80                 ; HTTP port
 

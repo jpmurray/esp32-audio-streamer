@@ -1,0 +1,108 @@
+// LogBuffer.cpp — Circular in-memory log ring buffer.
+
+#include "LogBuffer.h"
+
+#include <Arduino.h>
+#include <stdio.h>
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+
+// --------------------------------------------------------
+// Storage
+// --------------------------------------------------------
+static char     s_lines[LOG_BUF_LINES][LOG_BUF_LINE_LEN];
+static uint16_t s_head  = 0;   // index of next slot to write
+static uint16_t s_count = 0;   // number of valid entries (saturates at LOG_BUF_LINES)
+static SemaphoreHandle_t s_mutex = nullptr;
+
+// --------------------------------------------------------
+// Lifecycle
+// --------------------------------------------------------
+void logbuf_init() {
+    s_head  = 0;
+    s_count = 0;
+    if (!s_mutex) s_mutex = xSemaphoreCreateMutex();
+}
+
+// --------------------------------------------------------
+// Writing
+// --------------------------------------------------------
+void logbuf_vprintf(const char* fmt, va_list ap) {
+    char tmp[LOG_BUF_LINE_LEN];
+    vsnprintf(tmp, sizeof(tmp), fmt, ap);
+
+    // Write to Serial unconditionally
+    Serial.print(tmp);
+
+    // Write to ring buffer
+    if (s_mutex) xSemaphoreTake(s_mutex, portMAX_DELAY);
+    strncpy(s_lines[s_head], tmp, LOG_BUF_LINE_LEN - 1);
+    s_lines[s_head][LOG_BUF_LINE_LEN - 1] = '\0';
+    s_head = (s_head + 1) % LOG_BUF_LINES;
+    if (s_count < LOG_BUF_LINES) s_count++;
+    if (s_mutex) xSemaphoreGive(s_mutex);
+}
+
+void logbuf_printf(const char* fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    logbuf_vprintf(fmt, ap);
+    va_end(ap);
+}
+
+// --------------------------------------------------------
+// Reading — produce JSON array of strings
+// --------------------------------------------------------
+int logbuf_jsonArray(char* out, size_t out_sz) {
+    if (!out || out_sz < 4) return -1;
+
+    if (s_mutex) xSemaphoreTake(s_mutex, portMAX_DELAY);
+
+    // Determine oldest entry index
+    uint16_t start = (s_count < LOG_BUF_LINES) ? 0 : s_head;
+    uint16_t total = s_count;
+
+    // Copy snapshot to heap buffer to avoid large stack allocation (~8 KB).
+    char (*snapshot)[LOG_BUF_LINE_LEN] = (char (*)[LOG_BUF_LINE_LEN])
+        malloc((size_t)total * LOG_BUF_LINE_LEN);
+    if (!snapshot) {
+        if (s_mutex) xSemaphoreGive(s_mutex);
+        return -1;
+    }
+    for (uint16_t i = 0; i < total; ++i) {
+        uint16_t idx = (start + i) % LOG_BUF_LINES;
+        memcpy(snapshot[i], s_lines[idx], LOG_BUF_LINE_LEN);
+    }
+
+    if (s_mutex) xSemaphoreGive(s_mutex);
+
+    // Build JSON array
+    size_t pos = 0;
+    auto append = [&](const char* s) -> bool {
+        size_t len = strlen(s);
+        if (pos + len >= out_sz) return false;
+        memcpy(out + pos, s, len);
+        pos += len;
+        return true;
+    };
+
+    if (!append("[")) { free(snapshot); return -1; }
+    for (uint16_t i = 0; i < total; ++i) {
+        if (i > 0 && !append(",")) { free(snapshot); return -1; }
+        if (!append("\"")) { free(snapshot); return -1; }
+        // JSON-escape the line: replace \ -> \\\\ and " -> \\"
+        for (const char* p = snapshot[i]; *p; ++p) {
+            if (pos + 3 >= out_sz) { free(snapshot); return -1; }
+            if (*p == '\\' || *p == '"') {
+                out[pos++] = '\\';
+            }
+            out[pos++] = *p;
+        }
+        if (!append("\"")) { free(snapshot); return -1; }
+    }
+    if (!append("]")) { free(snapshot); return -1; }
+    out[pos] = '\0';
+    free(snapshot);
+    return (int)pos;
+}
