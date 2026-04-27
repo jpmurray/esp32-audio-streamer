@@ -423,7 +423,12 @@ function fetchLogs() {
   var box = document.getElementById('log-box');
   getJSON('/api/logs', function(d) {
     var lines = d.logs||[];
-    if(!lines.length) { box.textContent = '(no logs)'; return; }
+    if(!lines.length) {
+      box.textContent = '(no logs)';
+      lastLogFetch = Date.now();
+      updateLogAge();
+      return;
+    }
     // color-code by level character after timestamp
     var html = lines.map(function(line) {
       var lvl = 'I';
@@ -436,6 +441,8 @@ function fetchLogs() {
     lastLogFetch = Date.now();
     updateLogAge();
     if(logAutoScroll) box.scrollTop = box.scrollHeight;
+  }, function() {
+    box.textContent = '(failed to load logs)';
   });
 }
 

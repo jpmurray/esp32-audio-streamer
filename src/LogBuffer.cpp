@@ -91,12 +91,31 @@ int logbuf_jsonArray(char* out, size_t out_sz) {
     for (uint16_t i = 0; i < total; ++i) {
         if (i > 0 && !append(",")) { free(snapshot); return -1; }
         if (!append("\"")) { free(snapshot); return -1; }
-        // JSON-escape the line: replace \ -> \\\\ and " -> \\"
+        // JSON-escape each line so r.json() can parse log output reliably.
         for (const char* p = snapshot[i]; *p; ++p) {
-            if (pos + 3 >= out_sz) { free(snapshot); return -1; }
-            if (*p == '\\' || *p == '"') {
-                out[pos++] = '\\';
+            const char* esc = nullptr;
+            switch (*p) {
+                case '\\': esc = "\\\\"; break;
+                case '"':  esc = "\\\""; break;
+                case '\b': esc = "\\b"; break;
+                case '\f': esc = "\\f"; break;
+                case '\n': esc = "\\n"; break;
+                case '\r': esc = "\\r"; break;
+                case '\t': esc = "\\t"; break;
+                default:
+                    break;
             }
+            if (esc) {
+                if (!append(esc)) { free(snapshot); return -1; }
+                continue;
+            }
+            if ((unsigned char)*p < 0x20) {
+                char hex[7];
+                snprintf(hex, sizeof(hex), "\\u%04x", (unsigned char)*p);
+                if (!append(hex)) { free(snapshot); return -1; }
+                continue;
+            }
+            if (pos + 2 >= out_sz) { free(snapshot); return -1; }
             out[pos++] = *p;
         }
         if (!append("\"")) { free(snapshot); return -1; }
