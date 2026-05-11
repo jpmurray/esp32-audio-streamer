@@ -6,6 +6,7 @@
 #include "Scheduler.h"
 #include "StreamServer.h"
 #include "RuntimeSettings.h"
+#include "NetworkManager.h"
 #include "LogBuffer.h"
 
 #include <Arduino.h>
@@ -74,6 +75,46 @@ static void rejectCsrf(WebServer& server) {
                 "{\"error\":\"missing or invalid X-ESP32MIC-CSRF header\"}");
 }
 
+static String getArgStr(WebServer& server, const char* key) {
+    for (int i = 0; i < server.args(); ++i) {
+        if (server.argName(i) == key) return server.arg(i);
+    }
+    return String();
+}
+
+static String jsonEscape(const char* s) {
+    String out;
+    if (!s) return out;
+    out.reserve(strlen(s) + 8);
+    for (const char* p = s; *p; ++p) {
+        char c = *p;
+        switch (c) {
+            case '\\': out += "\\\\"; break;
+            case '"':  out += "\\\""; break;
+            case '\b': out += "\\b"; break;
+            case '\f': out += "\\f"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if ((uint8_t)c < 0x20) {
+                    char esc[7];
+                    snprintf(esc, sizeof(esc), "\\u%04x", (unsigned)c);
+                    out += esc;
+                } else {
+                    out += c;
+                }
+                break;
+        }
+    }
+    return out;
+}
+
+static void sendJsonError(WebServer& server, int code, const char* error) {
+    server.send(code, "application/json",
+                String("{\"error\":\"") + jsonEscape(error) + "\"}");
+}
+
 // --------------------------------------------------------
 // GET /api/status
 // --------------------------------------------------------
@@ -106,11 +147,20 @@ static void handleApiStatus(WebServer& server) {
     }
     char next_at_iso[24]; scheduler_formatIso8601UTC(next_at, next_at_iso, sizeof(next_at_iso));
 
-    char stream_url[64];
-    snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
-             WiFi.localIP().toString().c_str(), (int)STREAM_PORT);
+    char stream_host[16];
+    networkManager_streamHostIpString(stream_host, sizeof(stream_host));
+    char stream_url[64] = "";
+    if (stream_host[0]) {
+        snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
+                 stream_host, (int)STREAM_PORT);
+    }
 
-    char buf[1024]; int n = 0;
+    char wifi_json[900];
+    if (networkManager_writeStatusJson(wifi_json, sizeof(wifi_json)) < 0) {
+        strcpy(wifi_json, "{}");
+    }
+
+    char buf[2048]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{\"now_utc\":\"%s\","
         "\"mode\":\"%s\","
@@ -121,6 +171,7 @@ static void handleApiStatus(WebServer& server) {
         "\"tomorrow\":{\"civil_dawn_utc\":\"%s\",\"civil_dusk_utc\":\"%s\"},"
         "\"next_event\":{\"type\":\"%s\",\"at_utc\":\"%s\",\"seconds_until\":%u},"
         "\"stream\":{\"url\":\"%s\",\"active\":%s,\"connect_count\":%lu},"
+        "\"wifi\":%s,"
         "\"settings\":{\"wifi_tx_power_dbm\":%d,\"hpf_enabled\":%s,\"hpf_cutoff_hz\":%d,\"convert_shift\":%d}"
         "}",
         now_iso, mode,
@@ -133,6 +184,7 @@ static void handleApiStatus(WebServer& server) {
         stream_url,
         g_stream_active ? "true" : "false",
         (unsigned long)g_stream_connect_count,
+        wifi_json,
         (int)g_runtime_settings.wifi_tx_power_dbm,
         g_runtime_settings.hpf_enabled ? "true" : "false",
         (int)g_runtime_settings.hpf_cutoff_hz,
@@ -147,9 +199,13 @@ static void handleApiStatus(WebServer& server) {
 // GET /api/audio_status
 // --------------------------------------------------------
 static void handleApiAudioStatus(WebServer& server) {
-    char stream_url[64];
-    snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
-             WiFi.localIP().toString().c_str(), (int)STREAM_PORT);
+    char stream_host[16];
+    networkManager_streamHostIpString(stream_host, sizeof(stream_host));
+    char stream_url[64] = "";
+    if (stream_host[0]) {
+        snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
+                 stream_host, (int)STREAM_PORT);
+    }
 
     AudioMetrics m = audioPipeline_getMetrics();
 
@@ -224,7 +280,7 @@ static void handleApiPerfStatus(WebServer& server) {
         "\"heap\":{\"free\":%lu,\"min_free\":%lu,\"total\":%lu},"
         "\"stack_hwm\":{\"i2s_producer\":%lu,\"loop\":%lu},"
         "\"cpu_mhz\":%lu,"
-        "\"wifi_rssi_dbm\":%d"
+        "\"wifi_rssi_dbm\":%s"
         "}",
         (unsigned long)millis(),
         (unsigned long)heap_free,
@@ -233,7 +289,7 @@ static void handleApiPerfStatus(WebServer& server) {
         (unsigned long)i2s_hwm,
         (unsigned long)loop_hwm,
         (unsigned long)cpu_mhz,
-        (int)WiFi.RSSI()
+        networkManager_staConnected() ? String(WiFi.RSSI()).c_str() : "null"
     );
 
     if (n <= 0) { server.send(500, "application/json", "{\"error\":\"formatting\"}"); return; }
@@ -296,6 +352,127 @@ static bool strictParseBool(const String& s, bool* out) {
     if (s == "1" || s == "true")  { *out = true;  return true; }
     if (s == "0" || s == "false") { *out = false; return true; }
     return false;
+}
+
+// --------------------------------------------------------
+// Wi-Fi management endpoints
+// --------------------------------------------------------
+static void handleApiWifiStatus(WebServer& server) {
+    char buf[900];
+    if (networkManager_writeStatusJson(buf, sizeof(buf)) < 0) {
+        server.send(500, "application/json", "{\"error\":\"wifi status overflow\"}");
+        return;
+    }
+    server.send(200, "application/json", buf);
+}
+
+static void handleApiWifiScan(WebServer& server) {
+    int count = WiFi.scanNetworks();
+    if (count < 0) {
+        server.send(500, "application/json", "{\"error\":\"wifi scan failed\"}");
+        return;
+    }
+
+    String json;
+    json.reserve(64 + (count * 96));
+    json += "{\"networks\":[";
+    for (int i = 0; i < count; ++i) {
+        if (i) json += ",";
+        json += "{\"ssid\":\"";
+        json += jsonEscape(WiFi.SSID(i).c_str());
+        json += "\",\"rssi_dbm\":";
+        json += String(WiFi.RSSI(i));
+        json += ",\"encrypted\":";
+        json += (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? "false" : "true";
+        json += ",\"channel\":";
+        json += String(WiFi.channel(i));
+        json += "}";
+    }
+    json += "]}";
+    WiFi.scanDelete();
+    server.send(200, "application/json", json);
+}
+
+static void handleApiWifiConfig(WebServer& server) {
+    if (!csrfOk(server)) { rejectCsrf(server); return; }
+
+    String ssid = getArgStr(server, "ssid");
+    String password_action = getArgStr(server, "password_action");
+    String password = getArgStr(server, "password");
+    if (!password_action.length()) password_action = "set";
+
+    char errmsg[128] = "";
+    if (password_action == "keep") {
+        NetworkStatusSnapshot snap;
+        networkManager_getStatus(&snap);
+        if (!snap.has_credentials) {
+            sendJsonError(server, 400, "cannot keep password without saved credentials");
+            return;
+        }
+        if (!ssid.length()) ssid = String(snap.saved_ssid);
+        if (ssid != String(snap.saved_ssid)) {
+            sendJsonError(server, 400, "password_action=keep requires existing SSID");
+            return;
+        }
+        if (!networkManager_requestReconnect(errmsg, sizeof(errmsg))) {
+            sendJsonError(server, 400, errmsg);
+            return;
+        }
+    } else if (password_action == "set" || password_action == "clear") {
+        if (password_action == "clear") password = "";
+        if (!networkManager_saveCredentials(ssid, password, errmsg, sizeof(errmsg))) {
+            sendJsonError(server, 400, errmsg);
+            return;
+        }
+        if (!networkManager_requestReconnect(errmsg, sizeof(errmsg))) {
+            sendJsonError(server, 400, errmsg);
+            return;
+        }
+    } else {
+        sendJsonError(server, 400, "password_action must be set, keep, or clear");
+        return;
+    }
+
+    server.send(200, "application/json",
+                "{\"ok\":true,\"action\":\"wifi-config\",\"reconnect_started\":true}");
+}
+
+static void handleApiWifiReconnect(WebServer& server) {
+    if (!csrfOk(server)) { rejectCsrf(server); return; }
+    char errmsg[128] = "";
+    if (!networkManager_requestReconnect(errmsg, sizeof(errmsg))) {
+        sendJsonError(server, 400, errmsg);
+        return;
+    }
+    server.send(200, "application/json", "{\"ok\":true,\"action\":\"wifi-reconnect\"}");
+}
+
+static void handleApiWifiForget(WebServer& server) {
+    if (!csrfOk(server)) { rejectCsrf(server); return; }
+
+    bool disconnect_sta = true;
+    String disconnect_arg = getArgStr(server, "disconnect");
+    if (disconnect_arg.length() && !strictParseBool(disconnect_arg, &disconnect_sta)) {
+        sendJsonError(server, 400, "disconnect must be 0, 1, true, or false");
+        return;
+    }
+
+    char errmsg[128] = "";
+    if (!networkManager_requestForgetAndStartAp(disconnect_sta, errmsg, sizeof(errmsg))) {
+        sendJsonError(server, 500, errmsg);
+        return;
+    }
+
+    NetworkStatusSnapshot snap;
+    networkManager_getStatus(&snap);
+    String json = "{\"ok\":true,\"action\":\"wifi-forget\",\"setup_ap_active\":";
+    json += snap.setup_ap_active ? "true" : "false";
+    json += ",\"ap_ip\":\"";
+    json += jsonEscape(snap.ap_ip);
+    json += "\",\"ap_ssid\":\"";
+    json += jsonEscape(snap.ap_ssid);
+    json += "\"}";
+    server.send(200, "application/json", json);
 }
 
 // --------------------------------------------------------
@@ -444,6 +621,10 @@ static void handleApiRestartAudio(WebServer& server) {
 // --------------------------------------------------------
 static void handleApiTimeSync(WebServer& server) {
     if (!csrfOk(server)) { rejectCsrf(server); return; }
+    if (!networkManager_staConnected()) {
+        sendJsonError(server, 409, "STA Wi-Fi is not connected");
+        return;
+    }
     LOGI("time-sync requested\n");
     scheduler_maybeSyncNtp();
     time_t now = time(nullptr);
@@ -477,7 +658,12 @@ void httpControl_registerRoutes(WebServer& server) {
     server.on("/api/audio_status", HTTP_GET,  [&server]() { handleApiAudioStatus(server); });
     server.on("/api/perf_status",  HTTP_GET,  [&server]() { handleApiPerfStatus(server);  });
     server.on("/api/logs",         HTTP_GET,  [&server]() { handleApiLogs(server);        });
+    server.on("/api/wifi_status",  HTTP_GET,  [&server]() { handleApiWifiStatus(server);  });
+    server.on("/api/wifi_scan",    HTTP_GET,  [&server]() { handleApiWifiScan(server);    });
     server.on("/api/set",          HTTP_POST, [&server]() { handleApiSet(server);         });
+    server.on("/api/wifi/config",    HTTP_POST, [&server]() { handleApiWifiConfig(server);    });
+    server.on("/api/wifi/reconnect", HTTP_POST, [&server]() { handleApiWifiReconnect(server); });
+    server.on("/api/wifi/forget",    HTTP_POST, [&server]() { handleApiWifiForget(server);    });
     server.on("/api/action/restart-audio", HTTP_POST, [&server]() { handleApiRestartAudio(server); });
     server.on("/api/action/time-sync",     HTTP_POST, [&server]() { handleApiTimeSync(server);     });
     server.on("/api/action/reboot",        HTTP_POST, [&server]() { handleApiReboot(server);       });
@@ -490,8 +676,13 @@ void httpControl_registerRoutes(WebServer& server) {
             server.send(204, "text/plain", "");
             return;
         }
+        if (!path.startsWith("/api/") && networkManager_setupApActive()) {
+            server.sendHeader("Location", "/", true);
+            server.send(302, "text/plain", "");
+            return;
+        }
         server.send(404, "application/json",
-                    "{\"error\":\"not found\",\"path\":\"" + path + "\"}");
+                    String("{\"error\":\"not found\",\"path\":\"") + jsonEscape(path.c_str()) + "\"}");
     });
 
     LOGI("Registered /api/* routes\n");

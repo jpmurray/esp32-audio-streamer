@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ESP32 Audio Streamer Wi-Fi</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;padding:1rem;display:flex;justify-content:center}.wrap{width:100%;max-width:640px}.top{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin:.2rem 0 .6rem}h1{font-size:1.3rem;font-weight:750}.nav{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem}.nav a{border:1px solid #e2e8f0;background:#fff;color:#475569;border-radius:999px;padding:.35rem .7rem;font-size:.82rem;font-weight:700;text-decoration:none}.nav a.active{background:#2563eb;border-color:#2563eb;color:#fff}.nav a:hover{text-decoration:none;background:#eff6ff}.nav a.active:hover{background:#1d4ed8}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:.8rem}h2{font-size:.76rem;font-weight:700;margin-bottom:.65rem;color:#6b7280;text-transform:uppercase;letter-spacing:.07em}.row{display:flex;justify-content:space-between;align-items:center;padding:.34rem 0;border-bottom:1px solid #f3f4f6;font-size:.86rem;gap:.75rem;min-height:1.9rem}.row:last-child{border-bottom:none}.lbl{color:#6b7280;white-space:nowrap;flex-shrink:0}.val{text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.16rem .55rem;border-radius:999px;font-size:.74rem;font-weight:700;line-height:1.2}.badge:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%}.on{background:#dcfce7;color:#15803d}.on:before{background:#22c55e}.off{background:#fee2e2;color:#b91c1c}.off:before{background:#ef4444}.neutral{background:#f1f5f9;color:#475569}.neutral:before{background:#94a3b8}.warn{background:#fef9c3;color:#854d0e}.warn:before{background:#eab308}a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}.form .field{margin:.7rem 0}.form label{display:block;color:#4b5563;font-size:.82rem;font-weight:700;margin-bottom:.25rem}.form input[type=text],.form input[type=password],.form input[type=number]{width:100%;padding:.55rem .65rem;border:1px solid #d1d5db;border-radius:8px;font-size:1rem;background:#fff}.form input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}.check{display:flex;align-items:center;gap:.5rem;margin:.65rem 0}.check input{width:18px;height:18px;accent-color:#2563eb}.check label{margin:0;font-weight:500}.hint{font-size:.76rem;color:#6b7280;line-height:1.4;margin-top:.3rem}.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}.btn{padding:.48rem .8rem;border:none;border-radius:8px;cursor:pointer;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:.3rem;text-decoration:none}.btn:disabled{opacity:.48;cursor:not-allowed}.primary{background:#2563eb;color:#fff}.primary:not(:disabled):hover{background:#1d4ed8;text-decoration:none}.danger{background:#dc2626;color:#fff}.danger:not(:disabled):hover{background:#b91c1c}.ghost{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.ghost:not(:disabled):hover{background:#e2e8f0;text-decoration:none}.msg{font-size:.84rem;margin-top:.75rem;min-height:1.2em;padding:.45rem .55rem;border-radius:8px}.msg:empty{padding:0}.msg.ok{color:#15803d;background:#dcfce7}.msg.err{color:#b91c1c;background:#fee2e2}.msg.info{color:#1d4ed8;background:#dbeafe}.scan-list{display:none;margin-top:.75rem;border:1px solid #e5e7eb;border-radius:8px;max-height:210px;overflow:auto;font-size:.84rem}.scan-item{display:flex;justify-content:space-between;gap:.5rem;padding:.55rem .65rem;border-bottom:1px solid #f1f5f9;cursor:pointer}.scan-item:last-child{border-bottom:none}.scan-item:hover{background:#f8fafc}@media(max-width:460px){body{padding:.75rem}.top{align-items:flex-start;flex-direction:column}.row{align-items:flex-start;flex-direction:column;gap:.15rem}.val{text-align:left}.btn{font-size:.8rem;padding:.44rem .7rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Wi-Fi Settings</h1>
+  </div>
+  <nav class="nav" aria-label="Main navigation"><a href="/">Dashboard</a><a class="active" href="/wifi">Wi-Fi</a><a href="/audio">Audio</a><a href="/system">System</a></nav>
+
+  <div class="card">
+    <h2>Status</h2>
+    <div class="row"><span class="lbl">STA status</span><span class="val" id="wf-sta">—</span></div>
+    <div class="row"><span class="lbl">Saved SSID</span><span class="val" id="wf-saved">—</span></div>
+    <div class="row"><span class="lbl">Connected SSID</span><span class="val" id="wf-connected">—</span></div>
+    <div class="row"><span class="lbl">STA IP</span><span class="val" id="wf-sta-ip">—</span></div>
+    <div class="row"><span class="lbl">RSSI</span><span class="val" id="wf-rssi">—</span></div>
+    <div class="row"><span class="lbl">Setup AP</span><span class="val" id="wf-ap">—</span></div>
+    <div class="row"><span class="lbl">Last error</span><span class="val" id="wf-error">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Radio settings</h2>
+    <form class="form" id="wifi-settings-form" onsubmit="return applyWifiSettings(event)">
+      <div class="field">
+        <label for="inp-tx">Wi-Fi TX power (dBm)</label>
+        <input type="number" id="inp-tx" min="-1" max="20" step="1" value="15"/>
+      </div>
+      <div class="hint">Runtime Wi-Fi radio setting saved to NVS and applied immediately when possible.</div>
+      <div class="actions"><button class="btn primary" id="wifi-settings-btn" type="submit">Apply</button></div>
+      <div class="msg" id="settings-msg"></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Credentials</h2>
+    <form class="form" id="wifi-form" onsubmit="return saveWifiConfig(event)">
+      <div class="field">
+        <label for="wifi-ssid">SSID</label>
+        <input type="text" id="wifi-ssid" maxlength="32" autocomplete="off" placeholder="Network name" required/>
+      </div>
+      <div class="field">
+        <label for="wifi-pass">Password</label>
+        <input type="password" id="wifi-pass" maxlength="64" autocomplete="new-password" placeholder="Leave blank to keep current password"/>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="wifi-open"/>
+        <label for="wifi-open">Open network / clear password</label>
+      </div>
+      <div class="hint">Saved passwords are never displayed. Blank password keeps the current password for the same SSID unless “open network” is checked.</div>
+      <div class="actions">
+        <button class="btn primary" id="wifi-save-btn" type="submit">Save &amp; Reconnect</button>
+        <button class="btn ghost" type="button" id="wifi-reconnect-btn" onclick="wifiReconnect()">Reconnect</button>
+        <button class="btn ghost" type="button" id="wifi-scan-btn" onclick="scanWifiNetworks()">Scan</button>
+        <button class="btn danger" type="button" id="wifi-forget-btn" onclick="wifiForget()">Forget credentials</button>
+      </div>
+      <div class="scan-list" id="wifi-scan-list"></div>
+      <div class="msg" id="wifi-msg"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+var lastWifiStatus=null;
+function $(id){return document.getElementById(id)}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function setMsg(text,type){var el=$('wifi-msg');el.textContent=text;el.className='msg '+(type||'ok')}
+function setDisabled(el,yes){if(el)el.disabled=yes}
+function stateText(w){if(!w)return{cls:'neutral',text:'unknown'};if(w.sta_connected)return{cls:'on',text:'connected'};if(w.sta_connecting)return{cls:'warn',text:'connecting'};return{cls:'off',text:'disconnected'}}
+function getJSON(url,cb,errCb){fetch(url).then(function(r){return r.json()}).then(cb).catch(function(e){console.warn(url,e);if(errCb)errCb(e)})}
+function postJSON(url,body,cb){var opts={method:'POST',headers:{'X-ESP32MIC-CSRF':'1'}};if(body){opts.body=new URLSearchParams(body);opts.headers['Content-Type']='application/x-www-form-urlencoded'}fetch(url,opts).then(function(r){return r.json()}).then(cb).catch(function(e){cb({error:String(e)})})}
+function renderWifiStatus(w){lastWifiStatus=w;if(!w)return;var st=stateText(w);$('wf-sta').innerHTML='<span class="badge '+st.cls+'">'+st.text+'</span>';$('wf-saved').textContent=w.saved_ssid||(w.has_credentials?'(saved)':'—');$('wf-connected').textContent=w.connected_ssid||'—';$('wf-sta-ip').innerHTML=w.sta_ip?'<a href="http://'+escHtml(w.sta_ip)+'/">'+escHtml(w.sta_ip)+'</a>':'—';$('wf-rssi').innerHTML=w.rssi_dbm!=null?(w.rssi_dbm<-80?'<span class="badge warn">'+w.rssi_dbm+' dBm</span>':w.rssi_dbm+' dBm'):'—';$('wf-ap').textContent=w.setup_ap_active?((w.ap_ssid||'setup AP')+(w.ap_ip?' @ '+w.ap_ip:'')):'off';$('wf-error').textContent=w.last_error||'—';var ssid=$('wifi-ssid');if(ssid&&document.activeElement!==ssid&&!ssid.value)ssid.value=w.saved_ssid||w.connected_ssid||''}
+function fetchWifiStatus(){getJSON('/api/wifi_status',renderWifiStatus,function(){setMsg('Unable to read Wi-Fi status.','err')})}
+function fetchRuntimeStatus(){getJSON('/api/status',function(d){var s=d.settings||{},tx=$('inp-tx');if(tx&&document.activeElement!==tx)tx.value=s.wifi_tx_power_dbm!=null?s.wifi_tx_power_dbm:15})}
+function applyWifiSettings(e){if(e)e.preventDefault();var btn=$('wifi-settings-btn');setDisabled(btn,true);btn.textContent='Saving…';postJSON('/api/set',{wifi_tx_power_dbm:$('inp-tx').value},function(d){setDisabled(btn,false);btn.textContent='Apply';var el=$('settings-msg');if(d.ok){el.textContent='Saved.';el.className='msg ok';fetchRuntimeStatus()}else{el.textContent=d.error||'Save failed';el.className='msg err'}setTimeout(function(){el.textContent='';el.className='msg'},3500)});return false}
+function saveWifiConfig(e){if(e)e.preventDefault();var ssid=$('wifi-ssid').value,pass=$('wifi-pass').value,open=$('wifi-open').checked,current=(lastWifiStatus&&lastWifiStatus.saved_ssid)||'';if(!ssid){setMsg('SSID is required.','err');return false}var action='set';if(open)action='clear';else if(!pass&&current&&ssid===current)action='keep';else if(!pass){setMsg('Enter a password, or check open network / clear password.','err');return false}var btn=$('wifi-save-btn');setDisabled(btn,true);btn.textContent='Saving…';setMsg('Saving credentials and reconnecting… this page may briefly disconnect.','info');postJSON('/api/wifi/config',{ssid:ssid,password_action:action,password:pass},function(d){setDisabled(btn,false);btn.textContent='Save & Reconnect';$('wifi-pass').value='';if(d.ok){setMsg('Reconnect scheduled. Refreshing status…','ok');setTimeout(fetchWifiStatus,1200);setTimeout(fetchWifiStatus,2500)}else setMsg(d.error||'Wi-Fi save failed','err')});return false}
+function wifiReconnect(){var btn=$('wifi-reconnect-btn');setDisabled(btn,true);setMsg('Reconnect scheduled…','info');postJSON('/api/wifi/reconnect',null,function(d){setDisabled(btn,false);if(d.ok){setMsg('Reconnect requested.','ok');setTimeout(fetchWifiStatus,1200)}else setMsg(d.error||'Reconnect failed','err')})}
+function wifiForget(){if(!confirm('Forget saved Wi-Fi credentials and start setup AP? The current connection may drop.'))return;var btn=$('wifi-forget-btn');setDisabled(btn,true);setMsg('Forgetting credentials and starting setup AP…','info');postJSON('/api/wifi/forget',{disconnect:'1'},function(d){setDisabled(btn,false);if(d.ok){var where=d.ap_ip?(' Connect to '+(d.ap_ssid||'setup AP')+' and open http://'+d.ap_ip+'/'):'';setMsg('Credentials forgotten.'+where,'ok');$('wifi-pass').value='';fetchWifiStatus()}else setMsg(d.error||'Forget failed','err')})}
+function scanWifiNetworks(){var btn=$('wifi-scan-btn'),list=$('wifi-scan-list');setDisabled(btn,true);btn.textContent='Scanning…';list.style.display='block';list.textContent='Scanning…';getJSON('/api/wifi_scan',function(d){setDisabled(btn,false);btn.textContent='Scan';var nets=d.networks||[];if(!nets.length){list.textContent='No networks found.';return}list.innerHTML=nets.map(function(n){return '<div class="scan-item" data-ssid="'+escHtml(n.ssid)+'"><span>'+escHtml(n.ssid||'(hidden)')+'</span><span>'+(n.rssi_dbm!=null?n.rssi_dbm+' dBm ':'')+(n.encrypted?'🔒':'open')+'</span></div>'}).join('');Array.prototype.forEach.call(list.querySelectorAll('.scan-item'),function(item){item.onclick=function(){$('wifi-ssid').value=item.getAttribute('data-ssid')||'';$('wifi-pass').focus()}})},function(e){setDisabled(btn,false);btn.textContent='Scan';list.textContent='Scan failed: '+String(e)})}
+fetchWifiStatus();fetchRuntimeStatus();setInterval(function(){fetchWifiStatus();fetchRuntimeStatus()},5000);
+</script>
+</body>
+</html>

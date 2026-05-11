@@ -1,12 +1,22 @@
 [env:wemos_d1_mini32]
-; Local, untracked settings (Wi‑Fi + audio/tuning)
+; Local, untracked settings (Wi‑Fi onboarding + audio/tuning)
 ; Copy this file to local_env.ini and edit values
 
 build_flags =
-  ; Wi‑Fi
-  '-D WIFI_SSID="Your SSID"'      ; Wi‑Fi SSID
-  '-D WIFI_PASS="Your Password"'   ; Wi‑Fi password
+  ; Wi‑Fi runtime onboarding is enabled by default.
+  ; If no saved credentials exist, first boot starts a setup AP and serves
+  ; http://192.168.4.1/ for Wi‑Fi setup.
+  ; Optional legacy provisioning seed: if uncommented and non-placeholder,
+  ; the firmware tries these once and persists them to NVS on success.
+  ; '-D WIFI_SSID="Your SSID"'      ; optional seed SSID
+  ; '-D WIFI_PASS="Your Password"'   ; optional seed password
   -D WIFI_TX_POWER_DBM=15           ; Target TX power in dBm (−1..19.5 mapped)
+
+  ; Wi‑Fi onboarding AP
+  ; '-D WIFI_SETUP_AP_SSID="ESP32-Audio-Setup"' ; base AP SSID
+  ; '-D WIFI_SETUP_AP_PASS=""'                   ; empty=open, 8+ chars=WPA2
+  ; -D WIFI_SETUP_AP_UNIQUE_SUFFIX=1             ; append MAC suffix to AP SSID
+  ; -D WIFI_CONNECT_TIMEOUT_MS=20000             ; bounded STA connect attempt
 
   ; Audio
   -D SAMPLE_RATE_HZ=48000          ; Sample rate in Hz

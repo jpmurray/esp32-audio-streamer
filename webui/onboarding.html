@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ESP32 Audio Streamer Setup</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#eef2ff;color:#172033;min-height:100vh;padding:1rem;display:flex;align-items:flex-start;justify-content:center}.wrap{width:100%;max-width:560px}.card{background:#fff;border:1px solid #dbe3f0;border-radius:14px;box-shadow:0 8px 30px rgba(30,41,59,.12);padding:1.1rem;margin-top:1rem}h1{font-size:1.35rem;margin:.2rem 0 .35rem}p{font-size:.92rem;line-height:1.45;color:#475569;margin:.35rem 0}.row{display:flex;justify-content:space-between;gap:.75rem;border-bottom:1px solid #f1f5f9;padding:.45rem 0;font-size:.86rem}.row:last-child{border-bottom:none}.lbl{color:#64748b;white-space:nowrap}.val{text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}.badge{display:inline-flex;align-items:center;gap:.28rem;border-radius:999px;padding:.18rem .55rem;font-size:.76rem;font-weight:700}.badge:before{content:'';width:7px;height:7px;border-radius:50%;display:inline-block}.on{background:#dcfce7;color:#15803d}.on:before{background:#22c55e}.off{background:#fee2e2;color:#b91c1c}.off:before{background:#ef4444}.warn{background:#fef9c3;color:#854d0e}.warn:before{background:#eab308}.neutral{background:#f1f5f9;color:#475569}.neutral:before{background:#94a3b8}form{margin-top:.8rem}.field{margin:.65rem 0}label{display:block;font-size:.8rem;font-weight:700;color:#475569;margin-bottom:.28rem}input{width:100%;padding:.55rem .65rem;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem}input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}.check{display:flex;gap:.5rem;align-items:center;margin:.65rem 0}.check input{width:18px;height:18px;accent-color:#2563eb}.check label{margin:0;font-weight:500}.actions{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:.85rem}.btn{border:0;border-radius:8px;padding:.55rem .85rem;font-size:.9rem;font-weight:700;cursor:pointer}.btn:disabled{opacity:.5;cursor:not-allowed}.primary{background:#2563eb;color:#fff}.ghost{background:#f1f5f9;color:#334155;border:1px solid #dbe3f0}.msg{margin-top:.75rem;border-radius:8px;padding:.55rem .65rem;font-size:.86rem;min-height:2.1rem}.msg:empty{padding:0;min-height:0}.ok{background:#dcfce7;color:#166534}.err{background:#fee2e2;color:#991b1b}.info{background:#dbeafe;color:#1e40af}.scan{display:none;margin-top:.65rem;border:1px solid #e2e8f0;border-radius:8px;max-height:180px;overflow:auto}.scan-item{display:flex;justify-content:space-between;gap:.5rem;padding:.55rem .65rem;border-bottom:1px solid #f1f5f9;cursor:pointer;font-size:.86rem}.scan-item:last-child{border-bottom:none}.scan-item:hover{background:#f8fafc}.hint{font-size:.78rem;color:#64748b;margin-top:.3rem}a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>ESP32 Audio Streamer Setup</h1>
+    <p>Connect this device to your Wi-Fi network. After it joins, use the assigned STA IP below to open the normal audio UI.</p>
+    <div class="row"><span class="lbl">Setup AP</span><span class="val" id="ap">—</span></div>
+    <div class="row"><span class="lbl">STA status</span><span class="val" id="sta">—</span></div>
+    <div class="row"><span class="lbl">Saved SSID</span><span class="val" id="saved">—</span></div>
+    <div class="row"><span class="lbl">STA IP</span><span class="val" id="sta-ip">—</span></div>
+    <div class="row"><span class="lbl">Last error</span><span class="val" id="err">—</span></div>
+
+    <form onsubmit="return saveWifi(event)">
+      <div class="field"><label for="ssid">Wi-Fi SSID</label><input id="ssid" maxlength="32" autocomplete="off" placeholder="Network name" required/></div>
+      <div class="field"><label for="pass">Wi-Fi password</label><input id="pass" type="password" maxlength="64" autocomplete="new-password" placeholder="Leave blank for open network"/></div>
+      <div class="check"><input id="open" type="checkbox"/><label for="open">Open network / clear password</label></div>
+      <div class="hint">Passwords are saved to the device but are never displayed or returned by the API.</div>
+      <div class="actions">
+        <button class="btn primary" id="save-btn" type="submit">Save &amp; Connect</button>
+        <button class="btn ghost" id="scan-btn" type="button" onclick="scanWifi()">Scan</button>
+        <button class="btn ghost" type="button" onclick="refreshStatus()">Refresh</button>
+      </div>
+      <div class="scan" id="scan-list"></div>
+      <div class="msg" id="msg"></div>
+    </form>
+  </div>
+</div>
+<script>
+var lastStatus=null, pollTimer=null;
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function msg(t,c){$('msg').textContent=t;$('msg').className='msg '+(c||'info')}
+function badge(cls,t){return '<span class="badge '+cls+'">'+t+'</span>'}
+function state(w){if(w.sta_connected)return badge('on','connected');if(w.sta_connecting)return badge('warn','connecting');return badge('off','disconnected')}
+function getJSON(url,ok,err){fetch(url).then(function(r){return r.json()}).then(ok).catch(function(e){if(err)err(e);else console.warn(e)})}
+function post(url,body,ok){fetch(url,{method:'POST',headers:{'X-ESP32MIC-CSRF':'1','Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)}).then(function(r){return r.json()}).then(ok).catch(function(e){ok({error:String(e)})})}
+function render(w){lastStatus=w;$('ap').textContent=w.setup_ap_active?((w.ap_ssid||'setup AP')+(w.ap_ip?' @ '+w.ap_ip:'')):'off';$('sta').innerHTML=state(w);$('saved').textContent=w.saved_ssid||'—';$('sta-ip').innerHTML=w.sta_ip?'<a href="http://'+esc(w.sta_ip)+'/">'+esc(w.sta_ip)+'</a>':'—';$('err').textContent=w.last_error||'—';if(!$('ssid').value)$('ssid').value=w.saved_ssid||w.connected_ssid||'';if(w.sta_connected&&w.sta_ip){msg('Connected. Open http://'+w.sta_ip+'/ for the full audio UI.','ok')}}
+function refreshStatus(){getJSON('/api/wifi_status',render,function(){msg('Unable to read Wi-Fi status. Retrying…','err')})}
+function saveWifi(e){if(e)e.preventDefault();var ssid=$('ssid').value, pass=$('pass').value, open=$('open').checked;if(!ssid){msg('SSID is required.','err');return false}var action=open?'clear':'set';if(!open&&!pass){action='clear'}$('save-btn').disabled=true;$('save-btn').textContent='Connecting…';msg('Saving credentials and connecting. Keep this page open; the setup AP remains available if connection fails.','info');post('/api/wifi/config',{ssid:ssid,password_action:action,password:pass},function(d){$('save-btn').disabled=false;$('save-btn').textContent='Save & Connect';$('pass').value='';if(d.ok){msg('Reconnect scheduled. Waiting for STA IP…','info');if(!pollTimer)pollTimer=setInterval(refreshStatus,2000);setTimeout(refreshStatus,1000)}else msg(d.error||'Wi-Fi setup failed.','err')});return false}
+function scanWifi(){var btn=$('scan-btn'),list=$('scan-list');btn.disabled=true;btn.textContent='Scanning…';list.style.display='block';list.textContent='Scanning…';getJSON('/api/wifi_scan',function(d){btn.disabled=false;btn.textContent='Scan';var nets=d.networks||[];if(!nets.length){list.textContent='No networks found.';return}list.innerHTML=nets.map(function(n){return '<div class="scan-item" data-ssid="'+esc(n.ssid)+'"><span>'+esc(n.ssid||'(hidden)')+'</span><span>'+(n.rssi_dbm!=null?n.rssi_dbm+' dBm ':'')+(n.encrypted?'🔒':'open')+'</span></div>'}).join('');Array.prototype.forEach.call(list.querySelectorAll('.scan-item'),function(item){item.onclick=function(){$('ssid').value=item.getAttribute('data-ssid')||'';$('pass').focus()}})},function(e){btn.disabled=false;btn.textContent='Scan';list.textContent='Scan failed: '+String(e)})}
+refreshStatus();pollTimer=setInterval(refreshStatus,5000);
+</script>
+</body>
+</html>

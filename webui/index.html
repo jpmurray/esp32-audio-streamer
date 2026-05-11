@@ -5,529 +5,69 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>ESP32 Audio Streamer</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;padding:.75rem;min-height:100vh}
-h1{font-size:1.25rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
-h1 .subtitle{font-size:.75rem;font-weight:400;color:#6b7280;margin-left:.25rem}
-h2{font-size:.72rem;font-weight:700;margin-bottom:.6rem;color:#6b7280;text-transform:uppercase;letter-spacing:.07em}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.75rem;max-width:960px}
-.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:.85rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.row{display:flex;justify-content:space-between;align-items:center;padding:.22rem 0;border-bottom:1px solid #f3f4f6;font-size:.82rem;gap:.5rem;min-height:1.7rem}
-.row:last-child{border-bottom:none}
-.lbl{color:#6b7280;white-space:nowrap;flex-shrink:0}
-.val{text-align:right;word-break:break-all;font-variant-numeric:tabular-nums;font-size:.82rem}
-/* badges */
-.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .5rem;border-radius:20px;font-size:.72rem;font-weight:600;line-height:1.2}
-.badge::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%}
-.on{background:#dcfce7;color:#15803d}.on::before{background:#22c55e}
-.off{background:#fee2e2;color:#b91c1c}.off::before{background:#ef4444}
-.neutral{background:#f1f5f9;color:#475569}.neutral::before{background:#94a3b8}
-.warn{background:#fef9c3;color:#854d0e}.warn::before{background:#eab308}
-/* links */
-a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}
-/* stream url row */
-.url-row{display:flex;align-items:center;gap:.4rem;padding:.3rem 0;border-bottom:1px solid #f3f4f6;flex-wrap:wrap}
-.url-text{font-size:.78rem;color:#2563eb;word-break:break-all;flex:1;min-width:0}
-.copy-btn{flex-shrink:0;padding:.18rem .5rem;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:5px;font-size:.7rem;cursor:pointer;white-space:nowrap;transition:background .15s}
-.copy-btn:hover{background:#e5e7eb}
-.copy-btn.copied{background:#dcfce7;color:#15803d;border-color:#bbf7d0}
-/* audio player */
-audio{width:100%;margin:.5rem 0;height:36px;accent-color:#2563eb}
-.stream-open-btn{display:flex;align-items:center;justify-content:center;gap:.4rem;width:100%;padding:.35rem;border:1px solid #d1fae5;background:#f0fdf4;color:#15803d;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s}
-.stream-open-btn:hover{background:#dcfce7;text-decoration:none}
-.stream-open-btn.disabled{opacity:.4;pointer-events:none;cursor:default}
-/* settings form */
-.settings-form .field{display:flex;align-items:center;gap:.5rem;margin:.3rem 0;font-size:.82rem}
-.settings-form label{color:#6b7280;min-width:150px;flex-shrink:0}
-.settings-form input[type=number]{width:80px;padding:.25rem .4rem;border:1px solid #d1d5db;border-radius:5px;font-size:.82rem;background:#fff;transition:border .15s}
-.settings-form input[type=number]:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px #dbeafe}
-.settings-form input[type=checkbox]{width:16px;height:16px;accent-color:#2563eb}
-/* buttons */
-.btn{padding:.35rem .85rem;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600;transition:opacity .15s,background .15s;display:inline-flex;align-items:center;gap:.3rem}
-.btn:disabled,.btn[disabled]{opacity:.45;cursor:not-allowed}
-.btn-primary{background:#2563eb;color:#fff}.btn-primary:not(:disabled):hover{background:#1d4ed8}
-.btn-danger{background:#dc2626;color:#fff}.btn-danger:not(:disabled):hover{background:#b91c1c}
-.btn-warning{background:#d97706;color:#fff}.btn-warning:not(:disabled):hover{background:#b45309}
-.btn-sm{padding:.22rem .6rem;font-size:.75rem}
-.btn-ghost{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.btn-ghost:not(:disabled):hover{background:#e2e8f0}
-.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
-/* messages */
-.msg{font-size:.78rem;margin-top:.4rem;min-height:1.2em;padding:.2rem .4rem;border-radius:4px;transition:opacity .3s}
-.msg:empty{padding:0}
-.msg.ok{color:#15803d;background:#dcfce7}
-.msg.err{color:#b91c1c;background:#fee2e2}
-.msg.info{color:#1d4ed8;background:#dbeafe}
-/* log box */
-#log-box{font-family:"SF Mono",ui-monospace,"Cascadia Code",Consolas,monospace;font-size:.72rem;background:#0f172a;color:#cbd5e1;border-radius:8px;padding:.7rem .85rem;overflow-y:auto;max-height:240px;white-space:pre-wrap;word-break:break-all;line-height:1.55}
-#log-box .log-line{display:block}
-#log-box .log-line.lvl-E{color:#f87171}
-#log-box .log-line.lvl-W{color:#fbbf24}
-#log-box .log-line.lvl-I{color:#cbd5e1}
-#log-box .log-line.lvl-D{color:#64748b}
-.log-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
-.log-header h2{margin:0}
-.log-actions{display:flex;gap:.4rem;align-items:center}
-/* loading state */
-.loading-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2563eb;animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-/* stale */
-.stale .val,.stale #log-box{opacity:.55;font-style:italic}
-/* responsive */
-@media(max-width:400px){
-  .grid{grid-template-columns:1fr}
-  .settings-form label{min-width:120px}
-  .btn{font-size:.75rem;padding:.3rem .65rem}
-}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;padding:1rem;display:flex;justify-content:center}.wrap{width:100%;max-width:760px}.top{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin:.2rem 0 .6rem}h1{font-size:1.3rem;font-weight:750}.subtitle{font-size:.78rem;font-weight:500;color:#6b7280;margin-left:.25rem}.nav{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem}.nav a{border:1px solid #e2e8f0;background:#fff;color:#475569;border-radius:999px;padding:.35rem .7rem;font-size:.82rem;font-weight:700;text-decoration:none}.nav a.active{background:#2563eb;border-color:#2563eb;color:#fff}.nav a:hover{text-decoration:none;background:#eff6ff}.nav a.active:hover{background:#1d4ed8}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.8rem}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}.span{grid-column:1/-1}h2{font-size:.76rem;font-weight:700;margin-bottom:.65rem;color:#6b7280;text-transform:uppercase;letter-spacing:.07em}.row{display:flex;justify-content:space-between;align-items:center;padding:.34rem 0;border-bottom:1px solid #f3f4f6;font-size:.86rem;gap:.75rem;min-height:1.9rem}.row:last-child{border-bottom:none}.lbl{color:#6b7280;white-space:nowrap;flex-shrink:0}.val{text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.16rem .55rem;border-radius:999px;font-size:.74rem;font-weight:700;line-height:1.2}.badge:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%}.on{background:#dcfce7;color:#15803d}.on:before{background:#22c55e}.off{background:#fee2e2;color:#b91c1c}.off:before{background:#ef4444}.neutral{background:#f1f5f9;color:#475569}.neutral:before{background:#94a3b8}.warn{background:#fef9c3;color:#854d0e}.warn:before{background:#eab308}a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}.url-row{display:flex;align-items:center;gap:.45rem;padding:.35rem 0;border-bottom:1px solid #f3f4f6;flex-wrap:wrap}.url-text{font-size:.82rem;color:#2563eb;word-break:break-all;flex:1;min-width:0}.copy-btn{flex-shrink:0;padding:.28rem .65rem;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:7px;font-size:.76rem;font-weight:700;cursor:pointer}.copy-btn:hover{background:#e5e7eb}.copy-btn.copied{background:#dcfce7;color:#15803d;border-color:#bbf7d0}audio{width:100%;margin:.65rem 0 .35rem;height:36px;accent-color:#2563eb}.stream-open-btn{display:flex;align-items:center;justify-content:center;gap:.35rem;width:100%;padding:.45rem;border:1px solid #d1fae5;background:#f0fdf4;color:#15803d;border-radius:8px;font-size:.84rem;font-weight:700;text-decoration:none}.stream-open-btn:hover{background:#dcfce7;text-decoration:none}.stream-open-btn.disabled{opacity:.45;pointer-events:none}.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.2rem}.btn{padding:.48rem .8rem;border:none;border-radius:8px;cursor:pointer;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:.3rem;text-decoration:none}.btn:disabled{opacity:.48;cursor:not-allowed}.primary{background:#2563eb;color:#fff}.primary:not(:disabled):hover{background:#1d4ed8;text-decoration:none}.danger{background:#dc2626;color:#fff}.danger:not(:disabled):hover{background:#b91c1c}.warning{background:#d97706;color:#fff}.warning:not(:disabled):hover{background:#b45309}.ghost{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.ghost:not(:disabled):hover{background:#e2e8f0;text-decoration:none}.msg{font-size:.84rem;margin-top:.75rem;min-height:1.2em;padding:.45rem .55rem;border-radius:8px}.msg:empty{padding:0}.msg.ok{color:#15803d;background:#dcfce7}.msg.err{color:#b91c1c;background:#fee2e2}.msg.info{color:#1d4ed8;background:#dbeafe}.hint{font-size:.76rem;color:#6b7280;line-height:1.4;margin-top:.55rem}.link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.55rem}.link-card{display:block;border:1px solid #e5e7eb;background:#f8fafc;border-radius:10px;padding:.7rem;text-decoration:none;color:#1f2937}.link-card strong{display:block;font-size:.9rem;margin-bottom:.18rem}.link-card span{display:block;color:#6b7280;font-size:.76rem;line-height:1.3}.link-card:hover{background:#eff6ff;text-decoration:none}@media(max-width:520px){body{padding:.75rem}.top{align-items:flex-start;flex-direction:column}.row{align-items:flex-start;flex-direction:column;gap:.15rem}.val{text-align:left}.btn{font-size:.8rem;padding:.44rem .7rem}}
 </style>
 </head>
 <body>
-<h1>ESP32 Audio Streamer <span class="subtitle" id="hdr-ip"></span></h1>
-<div class="grid">
-
-  <!-- Stream -->
-  <div class="card" id="card-stream">
-    <h2>Stream</h2>
-    <div class="row"><span class="lbl">Status</span><span class="val" id="stream-active">—</span></div>
-    <div class="row"><span class="lbl">Connections</span><span class="val" id="stream-connects">—</span></div>
-    <div class="url-row" id="stream-url-row">
-      <a class="url-text" id="stream-url-link" href="#" target="_blank">—</a>
-      <button class="copy-btn" id="copy-url-btn" onclick="copyStreamUrl()" title="Copy URL">Copy</button>
+<div class="wrap">
+  <div class="top"><h1>ESP32 Audio Streamer <span class="subtitle" id="hdr-ip"></span></h1></div>
+  <nav class="nav" aria-label="Main navigation"><a class="active" href="/">Dashboard</a><a href="/wifi">Wi-Fi</a><a href="/audio">Audio</a><a href="/system">System</a></nav>
+  <div class="grid">
+    <div class="card span">
+      <h2>Stream</h2>
+      <div class="row"><span class="lbl">Status</span><span class="val" id="stream-active">—</span></div>
+      <div class="row"><span class="lbl">Connections</span><span class="val" id="stream-connects">—</span></div>
+      <div class="url-row"><a class="url-text" id="stream-url-link" href="#" target="_blank">—</a><button class="copy-btn" id="copy-url-btn" onclick="copyStreamUrl()" title="Copy URL">Copy</button></div>
+      <audio id="audio-player" controls preload="none"></audio>
+      <a class="stream-open-btn disabled" id="stream-open-btn" href="#" target="_blank">&#9654; Open stream in new tab</a>
     </div>
-    <audio id="audio-player" controls preload="none"></audio>
-    <a class="stream-open-btn disabled" id="stream-open-btn" href="#" target="_blank">&#9654; Open stream in new tab</a>
-  </div>
 
-  <!-- Status -->
-  <div class="card">
-    <h2>Status</h2>
-    <div class="row"><span class="lbl">Mode</span><span class="val" id="st-mode">—</span></div>
-    <div class="row"><span class="lbl">Uptime</span><span class="val" id="st-uptime">—</span></div>
-    <div class="row"><span class="lbl">Boot #</span><span class="val" id="st-boot">—</span></div>
-    <div class="row"><span class="lbl">Now (UTC)</span><span class="val" id="st-now">—</span></div>
-    <div class="row"><span class="lbl">Civil dawn</span><span class="val" id="st-dawn">—</span></div>
-    <div class="row"><span class="lbl">Civil dusk</span><span class="val" id="st-dusk">—</span></div>
-    <div class="row"><span class="lbl">Next event</span><span class="val" id="st-next">—</span></div>
-  </div>
-
-  <!-- Audio -->
-  <div class="card">
-    <h2>Audio</h2>
-    <div class="row"><span class="lbl">I2S</span><span class="val" id="au-i2s">—</span></div>
-    <div class="row"><span class="lbl">Ring buffer</span><span class="val" id="au-rb">—</span></div>
-    <div class="row"><span class="lbl">Sample rate</span><span class="val" id="au-sr">—</span></div>
-    <div class="row"><span class="lbl">WAV mode</span><span class="val" id="au-wav">—</span></div>
-    <div class="row"><span class="lbl">HPF enabled</span><span class="val" id="au-hpf">—</span></div>
-    <div class="row"><span class="lbl">HPF cutoff</span><span class="val" id="au-hpf-hz">—</span></div>
-    <div class="row">
-      <span class="lbl">Convert shift</span>
-      <span class="val" id="au-conv-shift">—</span>
-    </div>
-    <div class="row"><span class="lbl">Peak level</span><span class="val" id="au-peak">—</span></div>
-    <div class="row">
-      <span class="lbl">Peak hold</span>
-      <span class="val" id="au-peak-hold">—</span>
-    </div>
-    <div class="row"><span class="lbl">Clip count</span><span class="val" id="au-clips">—</span></div>
-    <div class="row"><span class="lbl">Clipped last block</span><span class="val" id="au-clip-last">—</span></div>
-    <div class="row"><span class="lbl">I2S errors</span><span class="val" id="au-i2s-err">—</span></div>
-    <div class="row"><span class="lbl">RB drops</span><span class="val" id="au-rb-drop">—</span></div>
-    <div class="row"><span class="lbl">TX bytes</span><span class="val" id="au-tx-bytes">—</span></div>
-    <div class="row"><span class="lbl">Write stalls</span><span class="val" id="au-write-stalls">—</span></div>
-    <div class="row"><span class="lbl">Stream timeouts</span><span class="val" id="au-timeouts">—</span></div>
-  </div>
-
-  <!-- Performance -->
-  <div class="card">
-    <h2>Performance</h2>
-    <div class="row"><span class="lbl">Heap free</span><span class="val" id="pf-heap-free">—</span></div>
-    <div class="row"><span class="lbl">Heap min free</span><span class="val" id="pf-heap-min">—</span></div>
-    <div class="row"><span class="lbl">CPU</span><span class="val" id="pf-cpu">—</span></div>
-    <div class="row"><span class="lbl">Wi-Fi RSSI</span><span class="val" id="pf-rssi">—</span></div>
-    <div class="row"><span class="lbl">I2S stack HWM</span><span class="val" id="pf-i2s-hwm">—</span></div>
-  </div>
-
-  <!-- Settings -->
-  <div class="card">
-    <h2>Settings</h2>
-    <form class="settings-form" id="settings-form" onsubmit="return applySettings(event)">
-      <div class="field">
-        <label for="inp-tx">Wi-Fi TX power (dBm)</label>
-        <input type="number" id="inp-tx" min="-1" max="20" step="1" value="15"/>
-      </div>
-      <div class="field">
-        <label for="inp-hpf-en">HPF enabled</label>
-        <input type="checkbox" id="inp-hpf-en"/>
-      </div>
-      <div class="field">
-        <label for="inp-hpf-hz">HPF cutoff (Hz)</label>
-        <input type="number" id="inp-hpf-hz" min="20" max="20000" step="1" value="80"/>
-      </div>
-      <div class="field">
-        <label for="inp-conv-shift">Convert shift <small style="color:#9ca3af;font-size:.7em">(1–31, restart req.)</small></label>
-        <input type="number" id="inp-conv-shift" min="1" max="31" step="1" value="11"/>
-      </div>
+    <div class="card">
+      <h2>Quick actions</h2>
       <div class="actions">
-        <button class="btn btn-primary" id="apply-btn" type="submit">Apply</button>
+        <button class="btn warning" id="btn-restart-audio" onclick="doAction('restart-audio',this)">Restart Audio</button>
+        <button class="btn ghost" id="btn-time-sync" onclick="doAction('time-sync',this)">Time Sync</button>
+        <button class="btn danger" id="btn-reboot" onclick="doAction('reboot',this)">Reboot</button>
       </div>
-      <div class="msg" id="settings-msg"></div>
-    </form>
-  </div>
-
-  <!-- Actions -->
-  <div class="card">
-    <h2>Actions</h2>
-    <div class="actions">
-      <button class="btn btn-warning btn-sm" id="btn-restart-audio" onclick="doAction('restart-audio',this)">Restart Audio</button>
-      <button class="btn btn-ghost btn-sm" id="btn-time-sync" onclick="doAction('time-sync',this)">Time Sync</button>
-      <button class="btn btn-danger btn-sm" id="btn-reboot" onclick="doAction('reboot',this)">Reboot</button>
+      <div class="msg" id="actions-msg"></div>
+      <div class="hint">Detailed audio controls and system diagnostics live on their dedicated pages.</div>
     </div>
-    <div class="msg" id="actions-msg"></div>
-  </div>
 
-  <!-- Logs -->
-  <div class="card" style="grid-column:1/-1">
-    <div class="log-header">
-      <h2>Logs</h2>
-      <div class="log-actions">
-        <span id="log-age" style="font-size:.7rem;color:#9ca3af"></span>
-        <button class="btn btn-ghost btn-sm" onclick="fetchLogs()">Refresh</button>
-        <button class="btn btn-ghost btn-sm" id="log-scroll-btn" onclick="toggleLogScroll()" title="Auto-scroll">&#8595; Auto</button>
+    <div class="card">
+      <h2>Wi-Fi summary</h2>
+      <div class="row"><span class="lbl">Status</span><span class="val" id="wf-sta">—</span></div>
+      <div class="row"><span class="lbl">SSID</span><span class="val" id="wf-ssid">—</span></div>
+      <div class="row"><span class="lbl">IP</span><span class="val" id="wf-ip">—</span></div>
+      <div class="actions"><a class="btn primary" href="/wifi">Manage Wi-Fi</a><button class="btn ghost" type="button" onclick="fetchStatus()">Refresh</button></div>
+    </div>
+
+    <div class="card span">
+      <h2>Pages</h2>
+      <div class="link-grid">
+        <a class="link-card" href="/wifi"><strong>Wi-Fi</strong><span>Credentials, scan, reconnect, setup AP.</span></a>
+        <a class="link-card" href="/audio"><strong>Audio</strong><span>Pipeline health, HPF, convert_shift, peak reset.</span></a>
+        <a class="link-card" href="/system"><strong>System</strong><span>Time, scheduler, performance, logs, reboot.</span></a>
       </div>
     </div>
-    <div id="log-box">Loading…</div>
   </div>
-
 </div>
 
 <script>
-// ---- state ----
-var logAutoScroll = true;
-var lastLogFetch = 0;
-var configuredConvertShift = null; // tracked from /api/status for mismatch display
-
-// ---- helpers ----
-function fmtUptime(s) {
-  var d = Math.floor(s/86400), h = Math.floor((s%86400)/3600),
-      m = Math.floor((s%3600)/60), sec = s%60;
-  var r = '';
-  if(d) r += d+'d ';
-  if(d||h) r += h+'h ';
-  if(d||h||m) r += m+'m ';
-  return r + sec + 's';
-}
-function badge(ok, yes, no) {
-  return '<span class="badge '+(ok?'on':'off')+'">'+(ok?yes:no)+'</span>';
-}
-function setMsg(id, text, type) {
-  var el = document.getElementById(id);
-  el.textContent = text;
-  el.className = 'msg '+(type||'ok');
-}
-function clearMsg(id, delay) {
-  setTimeout(function(){
-    var el = document.getElementById(id);
-    if(el){el.textContent='';el.className='msg';}
-  }, delay||3000);
-}
-function fmtBytes(b) {
-  if(b>=1048576) return (b/1048576).toFixed(1)+' MB';
-  if(b>=1024) return (b/1024).toFixed(1)+' kB';
-  return b+' B';
-}
-function fmtTime(s) {
-  if(!s) return '—';
-  return s.replace('T',' ').replace('Z','');
-}
-function setDisabled(el, yes) {
-  if(!el) return;
-  el.disabled = yes;
-}
-
-// ---- fetch wrappers ----
-function getJSON(url, cb, errCb) {
-  fetch(url).then(function(r){return r.json();}).then(cb).catch(function(e){
-    console.warn(url,e);
-    if(errCb) errCb(e);
-  });
-}
-function postJSON(url, body, cb) {
-  var opts = {method:'POST', headers: {'X-ESP32MIC-CSRF':'1'}};
-  if(body) {
-    opts.body = new URLSearchParams(body);
-    opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-  }
-  fetch(url, opts).then(function(r){return r.json();}).then(cb).catch(function(e){cb({error:String(e)});});
-}
-
-// ---- copy stream url ----
-function copyStreamUrl() {
-  var link = document.getElementById('stream-url-link');
-  var url = link.href;
-  if(!url || url === '#') return;
-  var btn = document.getElementById('copy-url-btn');
-  if(navigator.clipboard) {
-    navigator.clipboard.writeText(url).then(function(){
-      btn.textContent='Copied!'; btn.className='copy-btn copied';
-      setTimeout(function(){btn.textContent='Copy';btn.className='copy-btn';}, 2000);
-    });
-  } else {
-    // fallback
-    var ta = document.createElement('textarea');
-    ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    btn.textContent='Copied!'; btn.className='copy-btn copied';
-    setTimeout(function(){btn.textContent='Copy';btn.className='copy-btn';}, 2000);
-  }
-}
-
-// ---- log scroll toggle ----
-function toggleLogScroll() {
-  logAutoScroll = !logAutoScroll;
-  var btn = document.getElementById('log-scroll-btn');
-  btn.style.color = logAutoScroll ? '#2563eb' : '';
-  btn.style.borderColor = logAutoScroll ? '#2563eb' : '';
-}
-
-// ---- poll functions ----
-function fetchStatus() {
-  getJSON('/api/status', function(d) {
-    // stream card
-    var st = d.stream||{};
-    var url = st.url||'';
-    var link = document.getElementById('stream-url-link');
-    link.href = url||'#'; link.textContent = url||'—';
-    var openBtn = document.getElementById('stream-open-btn');
-    if(url) {
-      openBtn.href = url; openBtn.className = 'stream-open-btn';
-    } else {
-      openBtn.href = '#'; openBtn.className = 'stream-open-btn disabled';
-    }
-    var player = document.getElementById('audio-player');
-    if(url && player.src !== url) { player.src = url; }
-    document.getElementById('stream-active').innerHTML = badge(st.active,'active','idle');
-    document.getElementById('stream-connects').textContent = st.connect_count||0;
-
-    // header IP hint
-    if(url) {
-      var m = url.match(/https?:\/\/([\d.]+)/);
-      if(m) document.getElementById('hdr-ip').textContent = m[1];
-    }
-
-    // status card
-    var mode = d.mode||'unknown';
-    var modeCls = mode==='day'?'on':mode==='night'?'neutral':'neutral';
-    document.getElementById('st-mode').innerHTML = '<span class="badge '+modeCls+'">'+mode+'</span>';
-    document.getElementById('st-uptime').textContent = fmtUptime(d.uptime_sec||0);
-    document.getElementById('st-boot').textContent = d.boot_count||'—';
-    document.getElementById('st-now').textContent = fmtTime(d.now_utc);
-    var td = d.today||{};
-    document.getElementById('st-dawn').textContent = fmtTime(td.civil_dawn_utc);
-    document.getElementById('st-dusk').textContent = fmtTime(td.civil_dusk_utc);
-    var ne = d.next_event||{};
-    document.getElementById('st-next').textContent =
-      (ne.type||'—') + (ne.seconds_until ? ' in '+fmtUptime(ne.seconds_until) : '');
-
-    // populate settings inputs (only if user hasn't focused them)
-    var s = d.settings||{};
-    var txEl = document.getElementById('inp-tx');
-    var hpfEnEl = document.getElementById('inp-hpf-en');
-    var hpfHzEl = document.getElementById('inp-hpf-hz');
-    var csEl = document.getElementById('inp-conv-shift');
-    if(document.activeElement !== txEl) txEl.value = s.wifi_tx_power_dbm != null ? s.wifi_tx_power_dbm : 15;
-    if(document.activeElement !== hpfEnEl) hpfEnEl.checked = !!s.hpf_enabled;
-    if(document.activeElement !== hpfHzEl) hpfHzEl.value = s.hpf_cutoff_hz||80;
-    if(document.activeElement !== csEl) csEl.value = s.convert_shift != null ? s.convert_shift : 11;
-    // track for mismatch display in audio card
-    configuredConvertShift = s.convert_shift != null ? s.convert_shift : null;
-  });
-}
-
-function fetchAudioStatus() {
-  getJSON('/api/audio_status', function(d) {
-    document.getElementById('au-i2s').innerHTML   = badge(d.i2s_ok,'ok','error');
-    document.getElementById('au-rb').innerHTML    = badge(d.ringbuf_ok,'ok','error');
-    document.getElementById('au-sr').textContent  = d.sample_rate_hz ? d.sample_rate_hz+' Hz' : '—';
-    document.getElementById('au-wav').innerHTML   = badge(d.stream_wav_enable,'WAV','PCM L16');
-    document.getElementById('au-hpf').innerHTML   = badge(d.hpf_enabled,'on','off');
-    document.getElementById('au-hpf-hz').textContent = d.hpf_cutoff_hz ? d.hpf_cutoff_hz+' Hz' : '—';
-
-    // convert_shift: active value; flag mismatch vs configured (requires restart-audio to apply)
-    var activeShift = d.convert_shift != null ? d.convert_shift : null;
-    var csEl2 = document.getElementById('au-conv-shift');
-    if (activeShift == null) {
-      csEl2.innerHTML = '—';
-    } else if (configuredConvertShift != null && configuredConvertShift !== activeShift) {
-      csEl2.innerHTML = '<span class="badge warn" title="Active: '+activeShift+' — Configured: '+configuredConvertShift+'. Use Restart Audio to apply.">active: '+activeShift+' / cfg: '+configuredConvertShift+'</span>';
-    } else {
-      csEl2.textContent = String(activeShift);
-    }
-
-    document.getElementById('au-peak').textContent = d.peak_level != null ? d.peak_level : '—';
-
-    // peak hold with reset button inline
-    var ph = d.peak_hold != null ? d.peak_hold : '—';
-    document.getElementById('au-peak-hold').innerHTML =
-      ph + ' <button class="btn btn-sm btn-ghost" style="margin-left:.25rem" onclick="resetPeakHold()">Reset</button>';
-
-    document.getElementById('au-clips').textContent   = d.clip_count != null ? d.clip_count : '—';
-    document.getElementById('au-clip-last').innerHTML = badge(d.clipped_last_block,'yes','no');
-
-    var i2sErr = d.i2s_error_count||0;
-    document.getElementById('au-i2s-err').innerHTML = i2sErr > 0
-      ? '<span class="badge warn">'+i2sErr+'</span>'
-      : '<span>'+i2sErr+'</span>';
-
-    var rbDrop = d.rb_drop_count||0;
-    document.getElementById('au-rb-drop').innerHTML = rbDrop > 0
-      ? '<span class="badge warn">'+rbDrop+'</span>'
-      : '<span>'+rbDrop+'</span>';
-
-    var txBytes = d.stream_tx_bytes||0;
-    document.getElementById('au-tx-bytes').textContent = fmtBytes(txBytes);
-
-    var stalls = d.stream_write_stalls||0;
-    document.getElementById('au-write-stalls').innerHTML = stalls > 0
-      ? '<span class="badge warn">'+stalls+'</span>'
-      : '<span>'+stalls+'</span>';
-
-    var timeouts = d.stream_timeout_count||0;
-    document.getElementById('au-timeouts').innerHTML = timeouts > 0
-      ? '<span class="badge warn">'+timeouts+'</span>'
-      : '<span>'+timeouts+'</span>';
-  });
-}
-
-function fetchPerf() {
-  getJSON('/api/perf_status', function(d) {
-    var h = d.heap||{};
-    var hFree = h.free != null ? h.free : null;
-    var hMin  = h.min_free != null ? h.min_free : null;
-    document.getElementById('pf-heap-free').textContent = hFree != null ? fmtBytes(hFree) : '—';
-    // flag low heap
-    document.getElementById('pf-heap-min').innerHTML = hMin != null
-      ? (hMin < 20480 ? '<span class="badge warn">'+fmtBytes(hMin)+'</span>' : fmtBytes(hMin))
-      : '—';
-    document.getElementById('pf-cpu').textContent   = d.cpu_mhz ? d.cpu_mhz+' MHz' : '—';
-    var rssi = d.wifi_rssi_dbm;
-    document.getElementById('pf-rssi').innerHTML = rssi != null
-      ? (rssi < -80 ? '<span class="badge warn">'+rssi+' dBm</span>' : rssi+' dBm')
-      : '—';
-    var hwm = d.stack_hwm||{};
-    document.getElementById('pf-i2s-hwm').textContent = hwm.i2s_producer != null ? hwm.i2s_producer+' B' : '—';
-  });
-}
-
-function fetchLogs() {
-  var box = document.getElementById('log-box');
-  getJSON('/api/logs', function(d) {
-    var lines = d.logs||[];
-    if(!lines.length) {
-      box.textContent = '(no logs)';
-      lastLogFetch = Date.now();
-      updateLogAge();
-      return;
-    }
-    // color-code by level character after timestamp
-    var html = lines.map(function(line) {
-      var lvl = 'I';
-      var m = line.match(/\[([EWID])\]/);
-      if(m) lvl = m[1];
-      var safe = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      return '<span class="log-line lvl-'+lvl+'">'+safe+'</span>';
-    }).join('\n');
-    box.innerHTML = html;
-    lastLogFetch = Date.now();
-    updateLogAge();
-    if(logAutoScroll) box.scrollTop = box.scrollHeight;
-  }, function() {
-    box.textContent = '(failed to load logs)';
-  });
-}
-
-function updateLogAge() {
-  var el = document.getElementById('log-age');
-  if(!lastLogFetch) { el.textContent=''; return; }
-  var s = Math.round((Date.now()-lastLogFetch)/1000);
-  el.textContent = s < 5 ? 'just now' : s+'s ago';
-}
-
-// ---- settings ----
-function applySettings(e) {
-  e.preventDefault();
-  var btn = document.getElementById('apply-btn');
-  setDisabled(btn, true);
-  btn.textContent = 'Saving…';
-  var body = {
-    wifi_tx_power_dbm: document.getElementById('inp-tx').value,
-    hpf_enabled: document.getElementById('inp-hpf-en').checked ? '1' : '0',
-    hpf_cutoff_hz: document.getElementById('inp-hpf-hz').value,
-    convert_shift: document.getElementById('inp-conv-shift').value
-  };
-  postJSON('/api/set', body, function(d) {
-    setDisabled(btn, false);
-    btn.textContent = 'Apply';
-    if(d.ok) {
-      var msg = 'Saved.';
-      if(d.restart_audio_required) msg += ' Restart audio required for convert_shift.';
-      setMsg('settings-msg', msg, 'ok');
-    } else {
-      setMsg('settings-msg', d.error||'Unknown error', 'err');
-    }
-    clearMsg('settings-msg', 4000);
-  });
-  return false;
-}
-
-// ---- peak-hold reset ----
-function resetPeakHold() {
-  postJSON('/api/action/reset-peak-hold', null, function(d) {
-    if(!d.ok) console.warn('reset-peak-hold failed', d);
-    else fetchAudioStatus();
-  });
-}
-
-// ---- actions ----
-var actionLabels = {'restart-audio':'Restart audio?','time-sync':'Sync time now?','reboot':'Reboot device?'};
-var actionBtns = {'restart-audio':'btn-restart-audio','time-sync':'btn-time-sync','reboot':'btn-reboot'};
-
-function doAction(name, btn) {
-  if(!confirm(actionLabels[name]||name)) return;
-  var allBtns = Object.values(actionBtns).map(function(id){return document.getElementById(id);});
-  allBtns.forEach(function(b){if(b)setDisabled(b,true);});
-  if(btn) btn.textContent = '…';
-  setMsg('actions-msg', 'Running '+name+'…', 'info');
-
-  postJSON('/api/action/'+name, null, function(d) {
-    allBtns.forEach(function(b){if(b)setDisabled(b,false);});
-    // restore button labels
-    var labels = {'btn-restart-audio':'Restart Audio','btn-time-sync':'Time Sync','btn-reboot':'Reboot'};
-    Object.keys(labels).forEach(function(id){
-      var el = document.getElementById(id);
-      if(el) el.textContent = labels[id];
-    });
-    if(d.ok) {
-      setMsg('actions-msg', name+' done.', 'ok');
-      if(name !== 'reboot') setTimeout(function(){fetchStatus();fetchAudioStatus();}, 1500);
-    } else {
-      setMsg('actions-msg', d.error||'failed', 'err');
-    }
-    clearMsg('actions-msg', 5000);
-  });
-}
-
-// ---- init ----
-function pollAll() {
-  fetchStatus();
-  fetchAudioStatus();
-  fetchPerf();
-}
-pollAll();
-fetchLogs();
-setInterval(pollAll, 5000);
-setInterval(fetchLogs, 15000);
-setInterval(updateLogAge, 5000);
+function $(id){return document.getElementById(id)}
+function badge(ok,yes,no){return '<span class="badge '+(ok?'on':'off')+'">'+(ok?yes:no)+'</span>'}
+function wifiStateText(w){if(!w)return{cls:'neutral',text:'unknown'};if(w.sta_connected)return{cls:'on',text:'connected'};if(w.sta_connecting)return{cls:'warn',text:'connecting'};return{cls:'off',text:'disconnected'}}
+function setMsg(id,text,type){var el=$(id);el.textContent=text;el.className='msg '+(type||'ok')}
+function clearMsg(id,delay){setTimeout(function(){var el=$(id);if(el){el.textContent='';el.className='msg'}},delay||3000)}
+function setDisabled(el,yes){if(el)el.disabled=yes}
+function getJSON(url,cb,errCb){fetch(url).then(function(r){return r.json()}).then(cb).catch(function(e){console.warn(url,e);if(errCb)errCb(e)})}
+function postJSON(url,body,cb){var opts={method:'POST',headers:{'X-ESP32MIC-CSRF':'1'}};if(body){opts.body=new URLSearchParams(body);opts.headers['Content-Type']='application/x-www-form-urlencoded'}fetch(url,opts).then(function(r){return r.json()}).then(cb).catch(function(e){cb({error:String(e)})})}
+function copyStreamUrl(){var link=$('stream-url-link'),url=link.getAttribute('href');if(!url||url==='#')return;var btn=$('copy-url-btn');function done(){btn.textContent='Copied!';btn.className='copy-btn copied';setTimeout(function(){btn.textContent='Copy';btn.className='copy-btn'},1800)}if(navigator.clipboard)navigator.clipboard.writeText(url).then(done);else{var ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done()}}
+function renderWifi(w){var st=wifiStateText(w);$('wf-sta').innerHTML='<span class="badge '+st.cls+'">'+st.text+'</span>';$('wf-ssid').textContent=(w.connected_ssid||w.saved_ssid||(w.has_credentials?'(saved)':'—'));$('wf-ip').textContent=w.sta_ip||'—';if(w.sta_ip)$('hdr-ip').textContent=w.sta_ip}
+function fetchStatus(){getJSON('/api/status',function(d){var st=d.stream||{},url=st.url||'',link=$('stream-url-link'),openBtn=$('stream-open-btn'),player=$('audio-player');link.href=url||'#';link.textContent=url||'—';if(url){openBtn.href=url;openBtn.className='stream-open-btn';if(player.src!==url)player.src=url;var m=url.match(/https?:\/\/([\d.]+)/);if(m)$('hdr-ip').textContent=m[1]}else{openBtn.href='#';openBtn.className='stream-open-btn disabled'}$('stream-active').innerHTML=badge(st.active,'active','idle');$('stream-connects').textContent=st.connect_count||0;renderWifi(d.wifi||{})})}
+var actionLabels={'restart-audio':'Restart audio?','time-sync':'Sync time now?','reboot':'Reboot device?'};
+var actionIds={'restart-audio':'btn-restart-audio','time-sync':'btn-time-sync','reboot':'btn-reboot'};
+function doAction(name,btn){if(!confirm(actionLabels[name]||name))return;var buttons=Object.keys(actionIds).map(function(k){return $(actionIds[k])});buttons.forEach(function(b){setDisabled(b,true)});var old=btn?btn.textContent:'';if(btn)btn.textContent='…';setMsg('actions-msg','Running '+name+'…','info');postJSON('/api/action/'+name,null,function(d){buttons.forEach(function(b){setDisabled(b,false)});if(btn)btn.textContent=old;if(d.ok){setMsg('actions-msg',name+' done.','ok');if(name!=='reboot')setTimeout(fetchStatus,1200)}else setMsg('actions-msg',d.error||'failed','err');clearMsg('actions-msg',5000)})}
+fetchStatus();setInterval(fetchStatus,5000);
 </script>
 </body>
 </html>

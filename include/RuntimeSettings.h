@@ -49,6 +49,9 @@ bool runtimeSettings_validateWifiTxPower(int v);
 bool runtimeSettings_validateHpfCutoffHz(int v);
 bool runtimeSettings_validateConvertShift(int v);
 
+// Apply the current Wi-Fi TX power setting to the active Wi-Fi driver.
+void runtimeSettings_applyWifiTxPower();
+
 // ------------------------------------------------------------
 // Mutators — validate, update g_runtime_settings, persist, and
 // apply where possible without a full pipeline restart.

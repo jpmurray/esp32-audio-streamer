@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ESP32 Audio Streamer System</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;padding:1rem;display:flex;justify-content:center}.wrap{width:100%;max-width:860px}.top{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin:.2rem 0 .6rem}h1{font-size:1.3rem;font-weight:750}.nav{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem}.nav a{border:1px solid #e2e8f0;background:#fff;color:#475569;border-radius:999px;padding:.35rem .7rem;font-size:.82rem;font-weight:700;text-decoration:none}.nav a.active{background:#2563eb;border-color:#2563eb;color:#fff}.nav a:hover{text-decoration:none;background:#eff6ff}.nav a.active:hover{background:#1d4ed8}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.8rem}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}.span{grid-column:1/-1}h2{font-size:.76rem;font-weight:700;margin-bottom:.65rem;color:#6b7280;text-transform:uppercase;letter-spacing:.07em}.row{display:flex;justify-content:space-between;align-items:center;padding:.34rem 0;border-bottom:1px solid #f3f4f6;font-size:.86rem;gap:.75rem;min-height:1.9rem}.row:last-child{border-bottom:none}.lbl{color:#6b7280;white-space:nowrap;flex-shrink:0}.val{text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.16rem .55rem;border-radius:999px;font-size:.74rem;font-weight:700;line-height:1.2}.badge:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%}.on{background:#dcfce7;color:#15803d}.on:before{background:#22c55e}.off{background:#fee2e2;color:#b91c1c}.off:before{background:#ef4444}.neutral{background:#f1f5f9;color:#475569}.neutral:before{background:#94a3b8}.warn{background:#fef9c3;color:#854d0e}.warn:before{background:#eab308}a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}.btn{padding:.48rem .8rem;border:none;border-radius:8px;cursor:pointer;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:.3rem;text-decoration:none}.btn:disabled{opacity:.48;cursor:not-allowed}.danger{background:#dc2626;color:#fff}.danger:not(:disabled):hover{background:#b91c1c}.primary{background:#2563eb;color:#fff}.primary:not(:disabled):hover{background:#1d4ed8}.ghost{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.ghost:not(:disabled):hover{background:#e2e8f0;text-decoration:none}.msg{font-size:.84rem;margin-top:.75rem;min-height:1.2em;padding:.45rem .55rem;border-radius:8px}.msg:empty{padding:0}.msg.ok{color:#15803d;background:#dcfce7}.msg.err{color:#b91c1c;background:#fee2e2}.msg.info{color:#1d4ed8;background:#dbeafe}.hint{font-size:.76rem;color:#6b7280;line-height:1.4;margin-top:.55rem}#log-box{font-family:"SF Mono",ui-monospace,"Cascadia Code",Consolas,monospace;font-size:.74rem;background:#0f172a;color:#cbd5e1;border-radius:8px;padding:.75rem .85rem;overflow-y:auto;max-height:290px;white-space:pre-wrap;word-break:break-all;line-height:1.55}#log-box .log-line{display:block}#log-box .lvl-E{color:#f87171}#log-box .lvl-W{color:#fbbf24}#log-box .lvl-I{color:#cbd5e1}#log-box .lvl-D{color:#64748b}.log-tools{display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.55rem}@media(max-width:520px){body{padding:.75rem}.top{align-items:flex-start;flex-direction:column}.row{align-items:flex-start;flex-direction:column;gap:.15rem}.val{text-align:left}.btn{font-size:.8rem;padding:.44rem .7rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>System</h1></div>
+  <nav class="nav" aria-label="Main navigation"><a href="/">Dashboard</a><a href="/wifi">Wi-Fi</a><a href="/audio">Audio</a><a class="active" href="/system">System</a></nav>
+  <div class="grid">
+    <div class="card">
+      <h2>Time & scheduler</h2>
+      <div class="row"><span class="lbl">Mode</span><span class="val" id="st-mode">—</span></div>
+      <div class="row"><span class="lbl">Uptime</span><span class="val" id="st-uptime">—</span></div>
+      <div class="row"><span class="lbl">Boot #</span><span class="val" id="st-boot">—</span></div>
+      <div class="row"><span class="lbl">Now (UTC)</span><span class="val" id="st-now">—</span></div>
+      <div class="row"><span class="lbl">Last NTP check</span><span class="val" id="st-ntp">—</span></div>
+      <div class="row"><span class="lbl">Location</span><span class="val" id="st-location">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Day/night schedule</h2>
+      <div class="row"><span class="lbl">Today dawn</span><span class="val" id="st-dawn">—</span></div>
+      <div class="row"><span class="lbl">Today dusk</span><span class="val" id="st-dusk">—</span></div>
+      <div class="row"><span class="lbl">Tomorrow dawn</span><span class="val" id="st-tom-dawn">—</span></div>
+      <div class="row"><span class="lbl">Tomorrow dusk</span><span class="val" id="st-tom-dusk">—</span></div>
+      <div class="row"><span class="lbl">Next event</span><span class="val" id="st-next">—</span></div>
+      <div class="row"><span class="lbl">Basis</span><span class="val">civil twilight -6°</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Performance</h2>
+      <div class="row"><span class="lbl">Heap free</span><span class="val" id="pf-heap-free">—</span></div>
+      <div class="row"><span class="lbl">Heap min free</span><span class="val" id="pf-heap-min">—</span></div>
+      <div class="row"><span class="lbl">CPU</span><span class="val" id="pf-cpu">—</span></div>
+      <div class="row"><span class="lbl">Wi-Fi RSSI</span><span class="val" id="pf-rssi">—</span></div>
+      <div class="row"><span class="lbl">I2S stack HWM</span><span class="val" id="pf-i2s-hwm">—</span></div>
+      <div class="row"><span class="lbl">Loop stack HWM</span><span class="val" id="pf-loop-hwm">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>System actions</h2>
+      <div class="actions">
+        <button class="btn primary" id="btn-time-sync" onclick="doAction('time-sync',this)">Time Sync</button>
+        <button class="btn danger" id="btn-reboot" onclick="doAction('reboot',this)">Reboot</button>
+        <button class="btn ghost" onclick="pollAll();fetchLogs()">Refresh</button>
+      </div>
+      <div class="msg" id="actions-msg"></div>
+      <div class="hint">Time sync requires STA Wi-Fi. Reboot uses ESP.restart().</div>
+    </div>
+
+    <div class="card span">
+      <h2>Logs</h2>
+      <div class="log-tools"><span id="log-age" class="hint"></span><div class="actions" style="margin:0"><button class="btn ghost" onclick="fetchLogs()">Refresh</button><button class="btn ghost" id="log-scroll-btn" onclick="toggleLogScroll()">Auto-scroll on</button></div></div>
+      <div id="log-box">Loading…</div>
+    </div>
+  </div>
+</div>
+<script>
+var logAutoScroll=true,lastLogFetch=0;
+function $(id){return document.getElementById(id)}
+function badgeClass(cls,text){return '<span class="badge '+cls+'">'+text+'</span>'}
+function fmtUptime(s){s=Math.max(0,Math.floor(s||0));var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sec=s%60,r='';if(d)r+=d+'d ';if(d||h)r+=h+'h ';if(d||h||m)r+=m+'m ';return r+sec+'s'}
+function fmtBytes(b){if(b==null)return'—';if(b>=1048576)return(b/1048576).toFixed(1)+' MB';if(b>=1024)return(b/1024).toFixed(1)+' kB';return b+' B'}
+function fmtTime(s){return s?s.replace('T',' ').replace('Z',''): '—'}
+function setMsg(id,text,type){var el=$(id);el.textContent=text;el.className='msg '+(type||'ok')}
+function clearMsg(id,delay){setTimeout(function(){var el=$(id);if(el){el.textContent='';el.className='msg'}},delay||3500)}
+function setDisabled(el,yes){if(el)el.disabled=yes}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function getJSON(url,cb,errCb){fetch(url).then(function(r){return r.json()}).then(cb).catch(function(e){console.warn(url,e);if(errCb)errCb(e)})}
+function postJSON(url,body,cb){var opts={method:'POST',headers:{'X-ESP32MIC-CSRF':'1'}};if(body){opts.body=new URLSearchParams(body);opts.headers['Content-Type']='application/x-www-form-urlencoded'}fetch(url,opts).then(function(r){return r.json()}).then(cb).catch(function(e){cb({error:String(e)})})}
+function fetchStatus(){getJSON('/api/status',function(d){var mode=d.mode||'unknown';$('st-mode').innerHTML=badgeClass(mode==='day'?'on':mode==='night'?'neutral':'neutral',mode);$('st-uptime').textContent=fmtUptime(d.uptime_sec||0);$('st-boot').textContent=d.boot_count||'—';$('st-now').textContent=fmtTime(d.now_utc);$('st-ntp').textContent=fmtTime(d.last_ntp_check_utc);var loc=d.location||{};$('st-location').textContent=(loc.lat!=null&&loc.lon!=null)?(loc.lat+', '+loc.lon):'—';var td=d.today||{},tm=d.tomorrow||{},ne=d.next_event||{};$('st-dawn').textContent=fmtTime(td.civil_dawn_utc);$('st-dusk').textContent=fmtTime(td.civil_dusk_utc);$('st-tom-dawn').textContent=fmtTime(tm.civil_dawn_utc);$('st-tom-dusk').textContent=fmtTime(tm.civil_dusk_utc);$('st-next').textContent=(ne.type||'—')+(ne.seconds_until?' in '+fmtUptime(ne.seconds_until):'')})}
+function fetchPerf(){getJSON('/api/perf_status',function(d){var h=d.heap||{},hw=d.stack_hwm||{};$('pf-heap-free').textContent=fmtBytes(h.free);$('pf-heap-min').innerHTML=h.min_free!=null?(h.min_free<20480?'<span class="badge warn">'+fmtBytes(h.min_free)+'</span>':fmtBytes(h.min_free)):'—';$('pf-cpu').textContent=d.cpu_mhz?d.cpu_mhz+' MHz':'—';var rssi=d.wifi_rssi_dbm;$('pf-rssi').innerHTML=rssi!=null?(rssi<-80?'<span class="badge warn">'+rssi+' dBm</span>':rssi+' dBm'):'—';$('pf-i2s-hwm').textContent=hw.i2s_producer!=null?hw.i2s_producer+' B':'—';$('pf-loop-hwm').textContent=hw.loop!=null?hw.loop+' B':'—'})}
+function fetchLogs(){var box=$('log-box');getJSON('/api/logs',function(d){var lines=d.logs||[];if(!lines.length){box.textContent='(no logs)';lastLogFetch=Date.now();updateLogAge();return}box.innerHTML=lines.map(function(line){var m=line.match(/\[([EWID])\]/),lvl=m?m[1]:'I';return '<span class="log-line lvl-'+lvl+'">'+escHtml(line)+'</span>'}).join('\n');lastLogFetch=Date.now();updateLogAge();if(logAutoScroll)box.scrollTop=box.scrollHeight},function(){box.textContent='(failed to load logs)'})}
+function updateLogAge(){if(!lastLogFetch){$('log-age').textContent='';return}var s=Math.round((Date.now()-lastLogFetch)/1000);$('log-age').textContent=s<5?'Logs updated just now':'Logs updated '+s+'s ago'}
+function toggleLogScroll(){logAutoScroll=!logAutoScroll;$('log-scroll-btn').textContent=logAutoScroll?'Auto-scroll on':'Auto-scroll off'}
+function doAction(name,btn){var prompt=name==='reboot'?'Reboot device?':'Sync time now?';if(!confirm(prompt))return;var buttons=[$('btn-time-sync'),$('btn-reboot')];buttons.forEach(function(b){setDisabled(b,true)});var old=btn.textContent;btn.textContent='…';setMsg('actions-msg','Running '+name+'…','info');postJSON('/api/action/'+name,null,function(d){buttons.forEach(function(b){setDisabled(b,false)});btn.textContent=old;if(d.ok){setMsg('actions-msg',name+' done.','ok');setTimeout(fetchStatus,1200)}else setMsg('actions-msg',d.error||'failed','err');clearMsg('actions-msg',5000)})}
+function pollAll(){fetchStatus();fetchPerf()}
+pollAll();fetchLogs();setInterval(pollAll,5000);setInterval(fetchLogs,15000);setInterval(updateLogAge,5000);
+</script>
+</body>
+</html>

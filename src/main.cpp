@@ -17,6 +17,7 @@
 #include "Scheduler.h"
 #include "StreamServer.h"
 #include "RuntimeSettings.h"
+#include "NetworkManager.h"
 #include "LogBuffer.h"
 #include "HttpControl.h"
 #include "WebUI_gz.h"
@@ -99,85 +100,103 @@
 // ------------------------------------------------------------
 static WebServer server(SERVER_PORT);
 
-// ------------------------------------------------------------
-// Wi-Fi helpers
-// ------------------------------------------------------------
-static wifi_power_t mapTxPowerDbm(int dbm) {
-    if (dbm >= 20) return WIFI_POWER_19_5dBm;
-    if (dbm >= 19) return WIFI_POWER_19dBm;
-    if (dbm >= 18) return WIFI_POWER_18_5dBm;
-    if (dbm >= 17) return WIFI_POWER_17dBm;
-    if (dbm >= 15) return WIFI_POWER_15dBm;
-    if (dbm >= 13) return WIFI_POWER_13dBm;
-    if (dbm >= 11) return WIFI_POWER_11dBm;
-    if (dbm >= 9)  return WIFI_POWER_8_5dBm;
-    if (dbm >= 7)  return WIFI_POWER_7dBm;
-    if (dbm >= 5)  return WIFI_POWER_5dBm;
-    if (dbm >= 2)  return WIFI_POWER_2dBm;
-    return WIFI_POWER_MINUS_1dBm;
-}
-
-static void connectWiFiBlocking() {
-    const char* ssid = WIFI_SSID;
-    const char* pass = WIFI_PASS;
-    WiFi.persistent(false);
-    WiFi.disconnect(true, true);
-    WiFi.mode(WIFI_OFF);
-    delay(200);
-    esp_wifi_stop();
-    esp_wifi_deinit();
-    delay(100);
-    WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false);
-
-    if (String(WIFI_SSID) == "YOUR_SSID" || String(WIFI_PASS) == "YOUR_PASSWORD") {
-        LOGW("WIFI_SSID/WIFI_PASS are placeholders.\n");
-        LOGW("Set them in platformio.ini build_flags, then rebuild/flash.\n");
-    }
-
-    LOGI("Connecting to Wi-Fi SSID: '%s'\n", ssid);
-    wifi_power_t txp = mapTxPowerDbm((int)WIFI_TX_POWER_DBM);
-    WiFi.setTxPower(txp);
-    LOGI("[WiFi] TX power target=%d dBm (mapped enum=%d)\n", (int)WIFI_TX_POWER_DBM, (int)txp);
-    WiFi.begin(ssid, pass);
-
-    uint32_t dot = 0, lastDiag = millis();
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(250);
-        LOG_DOT();
-        if ((++dot % 40) == 0) LOG_NL();
-        if (millis() - lastDiag > 10000) {
-#if LOG_LEVEL >= 3
-            LOGD("\n[WiFi] Still connecting... printing diagnostics\n");
-            WiFi.printDiag(Serial);
-#endif
-            lastDiag = millis();
-        }
-    }
-    LOG_NL();
-#if LOG_LEVEL >= 2
-    Serial.print("[I] Connected. IP address: ");
-    Serial.println(WiFi.localIP());
-#endif
-}
-
 static void disableBrownout() {
 #ifdef RTC_CNTL_BROWN_OUT_REG
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
 #endif
 }
 
+static bool s_normal_services_started = false;
+
+static void startNormalServicesOnce() {
+    if (s_normal_services_started) return;
+    if (!networkManager_staConnected()) return;
+
+    scheduler_maybeSyncNtp();
+
+    time_t now = time(nullptr);
+    if (scheduler_timeIsValid()) {
+        scheduler_ensureSchedule(now);
+        if (now >= g_today_dawn_utc && now < g_today_dusk_utc) {
+            scheduler_pushCsvEpochRolling(PREF_KEY_LAST_WAKES, now);
+            scheduler_refreshNextSleeps(g_today_dusk_utc, g_tomorrow_dusk_utc);
+            g_last_mode = 1;
+        } else {
+            time_t nd = scheduler_nextCivilDawnAfter(now);
+            if (nd > now) {
+                LOGI("[MODE] Night after NTP; scheduling deep sleep until next dawn (%ld)\n", (long)nd);
+#if !defined(ENABLE_DEEP_SLEEP) || ENABLE_DEEP_SLEEP
+                scheduler_deepSleepUntil(nd);
+#else
+                LOGI("[MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.\n");
+#endif
+            } else {
+                LOGW("[MODE] Night after NTP but could not find future dawn; staying awake\n");
+            }
+        }
+    } else {
+        LOGW("[NTP] Time invalid after STA connect; will retry in loop (no sleep decisions yet)\n");
+    }
+
+    if (!audioPipeline_init()) {
+        LOGE("[I2S] init failed; /stream will 503\n");
+    } else {
+        audioPipeline_setHpfConfig(g_runtime_settings.hpf_enabled,
+                                   (int)g_runtime_settings.hpf_cutoff_hz);
+    }
+
+    streamServer_init();
+    s_normal_services_started = true;
+    LOGI("Normal services started; audio stream available on :%d/stream\n", (int)STREAM_PORT);
+}
+
 // ------------------------------------------------------------
 // HTTP route handlers
 // ------------------------------------------------------------
-static void handleRoot() {
-    // Serve the embedded gzip-compressed Web UI.
-    // The browser decompresses it automatically when Content-Encoding: gzip is set.
+static void sendGzippedHtml(const uint8_t* bytes, size_t len) {
     server.sendHeader("Content-Encoding", "gzip");
     server.sendHeader("Cache-Control", "no-cache");
-    // send() copies from PROGMEM via the WebServer internals; we must use
-    // a RAM copy because WebServer::send(code, type, buf, len) is available.
-    server.send_P(200, "text/html", (const char*)WEBUI_INDEX_GZ, WEBUI_INDEX_GZ_LEN);
+    server.send_P(200, "text/html", (const char*)bytes, len);
+}
+
+static bool isApOnlySetupMode() {
+    return !networkManager_staConnected() && networkManager_setupApActive();
+}
+
+static void handleRoot() {
+    // Serve the embedded gzip-compressed Web UI. In AP-only setup mode, serve
+    // the lightweight onboarding page; otherwise serve the normal control UI.
+    if (isApOnlySetupMode()) {
+        sendGzippedHtml(WEBUI_ONBOARDING_GZ, WEBUI_ONBOARDING_GZ_LEN);
+        return;
+    }
+    sendGzippedHtml(WEBUI_INDEX_GZ, WEBUI_INDEX_GZ_LEN);
+}
+
+static void handleWifiPage() {
+    // Keep AP-only first-boot behavior focused on onboarding. Once STA is up,
+    // /wifi serves the full credentials/settings management page.
+    if (isApOnlySetupMode()) {
+        sendGzippedHtml(WEBUI_ONBOARDING_GZ, WEBUI_ONBOARDING_GZ_LEN);
+        return;
+    }
+    sendGzippedHtml(WEBUI_WIFI_GZ, WEBUI_WIFI_GZ_LEN);
+}
+
+static void handleAudioPage() {
+    if (isApOnlySetupMode()) {
+        sendGzippedHtml(WEBUI_ONBOARDING_GZ, WEBUI_ONBOARDING_GZ_LEN);
+        return;
+    }
+    sendGzippedHtml(WEBUI_AUDIO_GZ, WEBUI_AUDIO_GZ_LEN);
+}
+
+static void handleSystemPage() {
+    if (isApOnlySetupMode()) {
+        sendGzippedHtml(WEBUI_ONBOARDING_GZ, WEBUI_ONBOARDING_GZ_LEN);
+        return;
+    }
+    sendGzippedHtml(WEBUI_SYSTEM_GZ, WEBUI_SYSTEM_GZ_LEN);
 }
 
 // handleStream() moved to StreamServer.cpp (port STREAM_PORT)
@@ -396,9 +415,13 @@ static void handleStatus() {
     appendIsoArrayLocal("next_three_sleeps_local", sleeps_csv);
 
     // Stream state (populated by StreamServer module)
-    char stream_url[64];
-    snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
-             WiFi.localIP().toString().c_str(), (int)STREAM_PORT);
+    char stream_host[16];
+    networkManager_streamHostIpString(stream_host, sizeof(stream_host));
+    char stream_url[64] = "";
+    if (stream_host[0] && s_normal_services_started) {
+        snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
+                 stream_host, (int)STREAM_PORT);
+    }
     n += snprintf(buf + n, sizeof(buf) - n,
                   ", \"stream\": {\"url\": \"%s\", \"active\": %s, \"connect_count\": %lu}",
                   stream_url,
@@ -432,72 +455,49 @@ void setup() {
     LOGI("[PMIC] Brownout workaround disabled (leaving detector enabled)\n");
 #endif
 
-    connectWiFiBlocking();
-    // Apply persisted Wi-Fi TX power (runtimeSettings_load ran before connect,
-    // but connectWiFiBlocking uses the compile-time default; re-apply now).
-    {
-        wifi_power_t txp = mapTxPowerDbm((int)g_runtime_settings.wifi_tx_power_dbm);
-        WiFi.setTxPower(txp);
-        LOGI("[WiFi] boot TX power applied: %d dBm\n", (int)g_runtime_settings.wifi_tx_power_dbm);
-    }
-    scheduler_maybeSyncNtp();
-
-    time_t now = time(nullptr);
-    if (scheduler_timeIsValid()) {
-        scheduler_ensureSchedule(now);
-        if (now >= g_today_dawn_utc && now < g_today_dusk_utc) {
-            scheduler_pushCsvEpochRolling(PREF_KEY_LAST_WAKES, now);
-            scheduler_refreshNextSleeps(g_today_dusk_utc, g_tomorrow_dusk_utc);
-            g_last_mode = 1;
-        } else {
-            time_t nd = scheduler_nextCivilDawnAfter(now);
-            if (nd > now) {
-                LOGI("[MODE] Night after NTP; scheduling deep sleep until next dawn (%ld)\n", (long)nd);
-#if !defined(ENABLE_DEEP_SLEEP) || ENABLE_DEEP_SLEEP
-                scheduler_deepSleepUntil(nd);
-#else
-                LOGI("[MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.\n");
-#endif
-            } else {
-                LOGW("[MODE] Night after NTP but could not find future dawn; staying awake\n");
-            }
-        }
-    } else {
-        LOGW("[NTP] Time invalid at boot; will retry in loop (no sleep decisions yet)\n");
-    }
-
-    if (!audioPipeline_init()) {
-        LOGE("[I2S] init failed; /stream will 503\n");
-    } else {
-        // Apply persisted HPF config over the compile-time defaults used by init.
-        audioPipeline_setHpfConfig(g_runtime_settings.hpf_enabled,
-                                   (int)g_runtime_settings.hpf_cutoff_hz);
-    }
-
-    // Start dedicated stream server on STREAM_PORT (default 81)
-    streamServer_init();
+    runtimeSettings_applyWifiTxPower();
+    NetworkBootMode boot_mode = networkManager_begin();
+    (void)boot_mode;
 
     // Control-plane routes (port SERVER_PORT, default 80)
     server.on("/", HTTP_GET, handleRoot);
+    server.on("/wifi", HTTP_GET, handleWifiPage);
+    server.on("/audio", HTTP_GET, handleAudioPage);
+    server.on("/system", HTTP_GET, handleSystemPage);
     server.on("/uptime", HTTP_GET, handleUptime_LegacyOnly);
     server.on("/status", HTTP_GET, handleStatus);
     httpControl_registerRoutes(server);
     server.begin();
     LOGI("HTTP control server started on :%d\n", (int)SERVER_PORT);
-    LOGI("Audio stream available on :%d/stream\n", (int)STREAM_PORT);
+
+    if (networkManager_staConnected()) {
+        startNormalServicesOnce();
+    } else if (networkManager_setupApActive()) {
+        char ip[16];
+        networkManager_primaryIpString(ip, sizeof(ip));
+        LOGI("Setup/control UI available at http://%s/\n", ip[0] ? ip : "192.168.4.1");
+    } else {
+        LOGE("No STA connection and setup AP is not active; control UI may be unreachable\n");
+    }
 }
 
 void loop() {
     server.handleClient();
+    networkManager_loop();
+
+    if (networkManager_staConnected()) {
+        startNormalServicesOnce();
+    }
 
     uint32_t now_ms = millis();
-    if (now_ms - g_next_ntp_retry_ms > 60000) {
+    if (s_normal_services_started && networkManager_staConnected() &&
+        now_ms - g_next_ntp_retry_ms > 60000) {
         g_next_ntp_retry_ms = now_ms;
         scheduler_maybeSyncNtp();
     }
 
     time_t nowt = time(nullptr);
-    if (scheduler_timeIsValid()) {
+    if (s_normal_services_started && networkManager_staConnected() && scheduler_timeIsValid()) {
         scheduler_ensureSchedule(nowt);
         scheduler_trySleepIfNight(nowt);
     }

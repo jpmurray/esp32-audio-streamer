@@ -146,7 +146,7 @@ void runtimeSettings_save() {
 }
 
 // --------------------------------------------------------
-// Mutators
+// Wi-Fi TX power application
 // --------------------------------------------------------
 static wifi_power_t mapDbmToEnum(int dbm) {
     if (dbm >= 20) return WIFI_POWER_19_5dBm;
@@ -163,6 +163,17 @@ static wifi_power_t mapDbmToEnum(int dbm) {
     return WIFI_POWER_MINUS_1dBm;
 }
 
+void runtimeSettings_applyWifiTxPower() {
+    wifi_power_t txp = mapDbmToEnum((int)g_runtime_settings.wifi_tx_power_dbm);
+    WiFi.setTxPower(txp);
+    LOGI("wifi_tx_power_dbm applied: %d (enum=%d)\n",
+         (int)g_runtime_settings.wifi_tx_power_dbm, (int)txp);
+}
+
+// --------------------------------------------------------
+// Mutators
+// --------------------------------------------------------
+
 bool runtimeSettings_setWifiTxPowerDbm(int v, char* errmsg, size_t errmsg_sz) {
     if (!runtimeSettings_validateWifiTxPower(v)) {
         snprintf(errmsg, errmsg_sz, "wifi_tx_power_dbm must be in [-1, 20], got %d", v);
@@ -170,8 +181,7 @@ bool runtimeSettings_setWifiTxPowerDbm(int v, char* errmsg, size_t errmsg_sz) {
     }
     g_runtime_settings.wifi_tx_power_dbm = (int8_t)v;
     runtimeSettings_save();
-    // Apply immediately — WiFi is already connected
-    WiFi.setTxPower(mapDbmToEnum(v));
+    runtimeSettings_applyWifiTxPower();
     LOGI("wifi_tx_power_dbm set to %d\n", v);
     return true;
 }
