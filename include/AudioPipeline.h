@@ -51,3 +51,11 @@ void audioPipeline_setHpfConfig(bool enabled, int cutoff_hz);
 // Return the convert_shift value captured at the last audioPipeline_init() call.
 // This is the value currently active in the running producer task.
 int audioPipeline_getActiveConvertShift();
+
+// Return the sample rate (Hz) captured at the last audioPipeline_init() call.
+// Reflects the runtime audio profile; always 48000 or 24000.
+int audioPipeline_getActiveSampleRateHz();
+
+// Return the ring buffer capacity in bytes as configured at the last
+// audioPipeline_init() call.  Reflects any RB_CAPACITY_BYTES override.
+size_t audioPipeline_getRingBufCapacityBytes();

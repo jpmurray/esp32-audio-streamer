@@ -464,6 +464,7 @@ void setup() {
     server.on("/wifi", HTTP_GET, handleWifiPage);
     server.on("/audio", HTTP_GET, handleAudioPage);
     server.on("/system", HTTP_GET, handleSystemPage);
+    server.on("/favicon.ico", HTTP_GET, []() { server.send(204, "image/x-icon", ""); });
     server.on("/uptime", HTTP_GET, handleUptime_LegacyOnly);
     server.on("/status", HTTP_GET, handleStatus);
     httpControl_registerRoutes(server);

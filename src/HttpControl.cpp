@@ -40,6 +40,9 @@
 #ifndef STREAM_PORT
 #define STREAM_PORT 81
 #endif
+#ifndef RTSP_PORT
+#define RTSP_PORT 8554
+#endif
 #ifndef SAMPLE_RATE_HZ
 #define SAMPLE_RATE_HZ 48000
 #endif
@@ -48,6 +51,19 @@
 #endif
 #ifndef STREAM_WAV_ENABLE
 #define STREAM_WAV_ENABLE 0
+#endif
+// Hardening tunable defaults (mirrors StreamServer.cpp; used read-only in status endpoint)
+#ifndef STREAM_WRITE_STALL_LIMIT
+#define STREAM_WRITE_STALL_LIMIT 500
+#endif
+#ifndef STREAM_IDLE_TIMEOUT_COUNT
+#define STREAM_IDLE_TIMEOUT_COUNT 30
+#endif
+#ifndef RTSP_WRITE_STALL_LIMIT
+#define RTSP_WRITE_STALL_LIMIT 500
+#endif
+#ifndef RTSP_IDLE_TIMEOUT_COUNT
+#define RTSP_IDLE_TIMEOUT_COUNT 30
 #endif
 #ifndef LAT
 #define LAT 51.4630911
@@ -150,9 +166,20 @@ static void handleApiStatus(WebServer& server) {
     char stream_host[16];
     networkManager_streamHostIpString(stream_host, sizeof(stream_host));
     char stream_url[64] = "";
+    char stream_wav_url[72] = "";
+    char stream_pcm_url[72] = "";
+    char rtsp_url[72] = "";
     if (stream_host[0]) {
-        snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
+        snprintf(stream_url,     sizeof(stream_url),     "http://%s:%d/stream",
                  stream_host, (int)STREAM_PORT);
+        snprintf(stream_wav_url, sizeof(stream_wav_url), "http://%s:%d/stream.wav",
+                 stream_host, (int)STREAM_PORT);
+        snprintf(stream_pcm_url, sizeof(stream_pcm_url), "http://%s:%d/stream.pcm",
+                 stream_host, (int)STREAM_PORT);
+#if RTSP_PORT != 0
+        snprintf(rtsp_url, sizeof(rtsp_url), "rtsp://%s:%d/audio",
+                 stream_host, (int)RTSP_PORT);
+#endif
     }
 
     char wifi_json[900];
@@ -160,7 +187,7 @@ static void handleApiStatus(WebServer& server) {
         strcpy(wifi_json, "{}");
     }
 
-    char buf[2048]; int n = 0;
+    char buf[2800]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{\"now_utc\":\"%s\","
         "\"mode\":\"%s\","
@@ -170,9 +197,31 @@ static void handleApiStatus(WebServer& server) {
         "\"today\":{\"civil_dawn_utc\":\"%s\",\"civil_dusk_utc\":\"%s\"},"
         "\"tomorrow\":{\"civil_dawn_utc\":\"%s\",\"civil_dusk_utc\":\"%s\"},"
         "\"next_event\":{\"type\":\"%s\",\"at_utc\":\"%s\",\"seconds_until\":%u},"
-        "\"stream\":{\"url\":\"%s\",\"active\":%s,\"connect_count\":%lu},"
+        "\"stream\":{"
+          "\"url\":\"%s\","
+          "\"active\":%s,"
+          "\"active_transport\":\"%s\","
+          "\"connect_count\":%lu,"
+          "\"http_connect_count\":%lu,"
+          "\"rtsp_connect_count\":%lu,"
+          "\"rtsp_streaming\":%s,"
+          "\"rtsp_url\":\"%s\","
+          "\"rtsp_port\":%d,"
+          "\"default_format\":\"%s\","
+          "\"audio_profile\":\"%s\","
+          "\"sample_rate_hz\":%d,"
+          "\"channels\":1,"
+          "\"bits_per_sample\":16,"
+          "\"wav_url\":\"%s\","
+          "\"pcm_url\":\"%s\","
+          "\"stop_requested\":%s,"
+          "\"last_transport\":\"%s\","
+          "\"last_disconnect_reason\":\"%s\","
+          "\"last_session_duration_ms\":%lu,"
+          "\"last_session_tx_bytes\":%lu"
+        "},"
         "\"wifi\":%s,"
-        "\"settings\":{\"wifi_tx_power_dbm\":%d,\"hpf_enabled\":%s,\"hpf_cutoff_hz\":%d,\"convert_shift\":%d}"
+        "\"settings\":{\"wifi_tx_power_dbm\":%d,\"hpf_enabled\":%s,\"hpf_cutoff_hz\":%d,\"convert_shift\":%d,\"audio_profile\":\"%s\",\"audio_profile_sample_rate_hz\":%d}"
         "}",
         now_iso, mode,
         (unsigned long)g_boot_count,
@@ -183,12 +232,30 @@ static void handleApiStatus(WebServer& server) {
         next_type, next_at_iso, seconds_until,
         stream_url,
         g_stream_active ? "true" : "false",
+        streamServer_transportName((StreamTransport)g_stream_active_transport),
         (unsigned long)g_stream_connect_count,
+        (unsigned long)g_http_connect_count,
+        (unsigned long)g_rtsp_connect_count,
+        g_rtsp_streaming ? "true" : "false",
+        rtsp_url,
+        (int)RTSP_PORT,
+        streamServer_defaultFormatName(),
+        audioProfile_name(g_runtime_settings.audio_profile),
+        audioPipeline_getActiveSampleRateHz(),
+        stream_wav_url,
+        stream_pcm_url,
+        g_stream_stop_requested ? "true" : "false",
+        streamServer_transportName((StreamTransport)g_stream_last_transport),
+        streamServer_disconnectReasonName((StreamDisconnectReason)g_stream_last_disconnect_reason),
+        (unsigned long)g_stream_last_session_duration_ms,
+        (unsigned long)g_stream_last_session_tx_bytes,
         wifi_json,
         (int)g_runtime_settings.wifi_tx_power_dbm,
         g_runtime_settings.hpf_enabled ? "true" : "false",
         (int)g_runtime_settings.hpf_cutoff_hz,
-        (int)g_runtime_settings.convert_shift
+        (int)g_runtime_settings.convert_shift,
+        audioProfile_name(g_runtime_settings.audio_profile),
+        audioProfile_sampleRateHz(g_runtime_settings.audio_profile)
     );
 
     if (n <= 0) { server.send(500, "application/json", "{\"error\":\"formatting\"}"); return; }
@@ -202,26 +269,54 @@ static void handleApiAudioStatus(WebServer& server) {
     char stream_host[16];
     networkManager_streamHostIpString(stream_host, sizeof(stream_host));
     char stream_url[64] = "";
+    char stream_wav_url[72] = "";
+    char stream_pcm_url[72] = "";
+    char rtsp_url[72] = "";
     if (stream_host[0]) {
-        snprintf(stream_url, sizeof(stream_url), "http://%s:%d/stream",
+        snprintf(stream_url,     sizeof(stream_url),     "http://%s:%d/stream",
                  stream_host, (int)STREAM_PORT);
+        snprintf(stream_wav_url, sizeof(stream_wav_url), "http://%s:%d/stream.wav",
+                 stream_host, (int)STREAM_PORT);
+        snprintf(stream_pcm_url, sizeof(stream_pcm_url), "http://%s:%d/stream.pcm",
+                 stream_host, (int)STREAM_PORT);
+#if RTSP_PORT != 0
+        snprintf(rtsp_url, sizeof(rtsp_url), "rtsp://%s:%d/audio",
+                 stream_host, (int)RTSP_PORT);
+#endif
     }
 
     AudioMetrics m = audioPipeline_getMetrics();
 
-    char buf[800]; int n = 0;
+    char buf[1800]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{"
         "\"i2s_ok\":%s,"
         "\"ringbuf_ok\":%s,"
         "\"stream_active\":%s,"
+        "\"active_transport\":\"%s\","
         "\"stream_connect_count\":%lu,"
+        "\"http_connect_count\":%lu,"
+        "\"rtsp_connect_count\":%lu,"
+        "\"rtsp_streaming\":%s,"
         "\"stream_url\":\"%s\","
+        "\"stream_wav_url\":\"%s\","
+        "\"stream_pcm_url\":\"%s\","
+        "\"rtsp_url\":\"%s\","
+        "\"rtsp_port\":%d,"
+        "\"default_format\":\"%s\","
+        "\"audio_profile\":\"%s\","
         "\"sample_rate_hz\":%d,"
+        "\"channels\":1,"
+        "\"bits_per_sample\":16,"
         "\"convert_shift\":%d,"
         "\"stream_wav_enable\":%s,"
         "\"hpf_enabled\":%s,"
         "\"hpf_cutoff_hz\":%d,"
+        "\"ring_buf_size_bytes\":%lu,"
+        "\"write_stall_limit\":%d,"
+        "\"idle_timeout_count\":%d,"
+        "\"rtsp_write_stall_limit\":%d,"
+        "\"rtsp_idle_timeout_count\":%d,"
         "\"peak_level\":%d,"
         "\"peak_hold\":%d,"
         "\"clip_count\":%lu,"
@@ -230,18 +325,41 @@ static void handleApiAudioStatus(WebServer& server) {
         "\"rb_drop_count\":%lu,"
         "\"stream_tx_bytes\":%lu,"
         "\"stream_write_stalls\":%lu,"
-        "\"stream_timeout_count\":%lu"
+        "\"stream_timeout_count\":%lu,"
+        "\"stop_requested\":%s,"
+        "\"last_transport\":\"%s\","
+        "\"last_disconnect_reason\":\"%s\","
+        "\"last_session_duration_ms\":%lu,"
+        "\"last_session_tx_bytes\":%lu,"
+        "\"rtsp_last_disconnect_reason\":\"%s\","
+        "\"rtsp_last_session_duration_ms\":%lu,"
+        "\"rtsp_last_session_tx_bytes\":%lu"
         "}",
         g_i2s_ok     ? "true" : "false",
         g_rb_ok      ? "true" : "false",
         g_stream_active ? "true" : "false",
+        streamServer_transportName((StreamTransport)g_stream_active_transport),
         (unsigned long)g_stream_connect_count,
+        (unsigned long)g_http_connect_count,
+        (unsigned long)g_rtsp_connect_count,
+        g_rtsp_streaming ? "true" : "false",
         stream_url,
-        (int)SAMPLE_RATE_HZ,
+        stream_wav_url,
+        stream_pcm_url,
+        rtsp_url,
+        (int)RTSP_PORT,
+        streamServer_defaultFormatName(),
+        audioProfile_name(g_runtime_settings.audio_profile),
+        audioPipeline_getActiveSampleRateHz(),
         audioPipeline_getActiveConvertShift(),
         (STREAM_WAV_ENABLE) ? "true" : "false",
         g_runtime_settings.hpf_enabled ? "true" : "false",
         (int)g_runtime_settings.hpf_cutoff_hz,
+        (unsigned long)audioPipeline_getRingBufCapacityBytes(),  // effective RB_CAPACITY_BYTES
+        (int)STREAM_WRITE_STALL_LIMIT,
+        (int)STREAM_IDLE_TIMEOUT_COUNT,
+        (int)RTSP_WRITE_STALL_LIMIT,
+        (int)RTSP_IDLE_TIMEOUT_COUNT,
         (int)m.peak_level,
         (int)m.peak_hold,
         (unsigned long)m.clip_count,
@@ -250,7 +368,15 @@ static void handleApiAudioStatus(WebServer& server) {
         (unsigned long)m.rb_drop_count,
         (unsigned long)g_stream_tx_bytes,
         (unsigned long)g_stream_write_stalls,
-        (unsigned long)g_stream_timeout_count
+        (unsigned long)g_stream_timeout_count,
+        g_stream_stop_requested ? "true" : "false",
+        streamServer_transportName((StreamTransport)g_stream_last_transport),
+        streamServer_disconnectReasonName((StreamDisconnectReason)g_stream_last_disconnect_reason),
+        (unsigned long)g_stream_last_session_duration_ms,
+        (unsigned long)g_stream_last_session_tx_bytes,
+        streamServer_disconnectReasonName((StreamDisconnectReason)g_rtsp_last_disconnect_reason),
+        (unsigned long)g_rtsp_last_session_duration_ms,
+        (unsigned long)g_rtsp_last_session_tx_bytes
     );
 
     if (n <= 0) { server.send(500, "application/json", "{\"error\":\"formatting\"}"); return; }
@@ -267,19 +393,22 @@ static void handleApiPerfStatus(WebServer& server) {
     uint32_t heap_total    = (uint32_t)ESP.getHeapSize();
 
     // Task list for stack high-water marks
-    uint32_t i2s_hwm   = g_i2s_task  ? (uint32_t)uxTaskGetStackHighWaterMark(g_i2s_task)  : 0;
-    uint32_t loop_hwm  = (uint32_t)uxTaskGetStackHighWaterMark(nullptr); // calling task = loop
+    uint32_t i2s_hwm    = g_i2s_task  ? (uint32_t)uxTaskGetStackHighWaterMark(g_i2s_task)  : 0;
+    uint32_t loop_hwm   = (uint32_t)uxTaskGetStackHighWaterMark(nullptr); // calling task = loop
+    uint32_t stream_hwm = streamServer_getTaskHighWaterMark();
+    uint32_t rtsp_hwm   = streamServer_getRtspTaskHighWaterMark();
 
     // CPU frequency
     uint32_t cpu_mhz = getCpuFrequencyMhz();
 
-    char buf[512]; int n = 0;
+    char buf[720]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{"
         "\"uptime_ms\":%lu,"
         "\"heap\":{\"free\":%lu,\"min_free\":%lu,\"total\":%lu},"
-        "\"stack_hwm\":{\"i2s_producer\":%lu,\"loop\":%lu},"
+        "\"stack_hwm\":{\"i2s_producer\":%lu,\"loop\":%lu,\"stream_server\":%lu,\"rtsp_server\":%lu},"
         "\"cpu_mhz\":%lu,"
+        "\"wifi_sleep_disabled\":true,"
         "\"wifi_rssi_dbm\":%s"
         "}",
         (unsigned long)millis(),
@@ -288,6 +417,8 @@ static void handleApiPerfStatus(WebServer& server) {
         (unsigned long)heap_total,
         (unsigned long)i2s_hwm,
         (unsigned long)loop_hwm,
+        (unsigned long)stream_hwm,
+        (unsigned long)rtsp_hwm,
         (unsigned long)cpu_mhz,
         networkManager_staConnected() ? String(WiFi.RSSI()).c_str() : "null"
     );
@@ -558,21 +689,44 @@ static void handleApiSet(WebServer& server) {
         restart_audio_required = true;
     }
 
+    val = getArgStr("audio_profile");
+    if (val.length()) {
+        int v;
+        // Accept numeric (0/1) or name string (quality_48k / stability_24k).
+        if (val == "quality_48k") {
+            v = (int)AUDIO_PROFILE_QUALITY_48K;
+        } else if (val == "stability_24k") {
+            v = (int)AUDIO_PROFILE_STABILITY_24K;
+        } else if (!strictParseInt(val, &v)) {
+            server.send(400, "application/json",
+                        "{\"error\":\"audio_profile must be 0, 1, quality_48k, or stability_24k\"}");
+            return;
+        }
+        if (!runtimeSettings_setAudioProfile(v, errmsg, sizeof(errmsg))) {
+            server.send(400, "application/json",
+                        String("{\"error\":\"") + errmsg + "\"}");
+            return;
+        }
+        any = true;
+        restart_audio_required = true;
+    }
+
     if (!any) {
         server.send(400, "application/json",
                     "{\"error\":\"no recognised setting key provided\"}");
         return;
     }
 
-    char buf[320]; int n = 0;
+    char buf[380]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{\"ok\":true,\"restart_audio_required\":%s,"
-        "\"settings\":{\"wifi_tx_power_dbm\":%d,\"hpf_enabled\":%s,\"hpf_cutoff_hz\":%d,\"convert_shift\":%d}}",
+        "\"settings\":{\"wifi_tx_power_dbm\":%d,\"hpf_enabled\":%s,\"hpf_cutoff_hz\":%d,\"convert_shift\":%d,\"audio_profile\":\"%s\"}}",
         restart_audio_required ? "true" : "false",
         (int)g_runtime_settings.wifi_tx_power_dbm,
         g_runtime_settings.hpf_enabled ? "true" : "false",
         (int)g_runtime_settings.hpf_cutoff_hz,
-        (int)g_runtime_settings.convert_shift
+        (int)g_runtime_settings.convert_shift,
+        audioProfile_name(g_runtime_settings.audio_profile)
     );
     server.send(200, "application/json", buf);
 }
@@ -597,14 +751,8 @@ static void handleApiRestartAudio(WebServer& server) {
     // This prevents a race where audioPipeline_stop() destroys the ring buffer
     // while the stream task is still reading from it.
     if (g_stream_active) {
-        g_stream_stop_requested = true;
         LOGI("restart-audio: waiting for stream session to drain\n");
-        // Wait up to 2 s for the stream loop to see the flag and exit.
-        uint32_t wait_start = millis();
-        while (g_stream_active && (millis() - wait_start) < 2000) {
-            delay(20);
-        }
-        if (g_stream_active) {
+        if (!streamServer_requestStopAndWait(2000)) {
             LOGW("restart-audio: stream session did not drain in time, proceeding\n");
         }
     }

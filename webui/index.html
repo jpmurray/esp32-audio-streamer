@@ -16,8 +16,9 @@
     <div class="card span">
       <h2>Stream</h2>
       <div class="row"><span class="lbl">Status</span><span class="val" id="stream-active">—</span></div>
-      <div class="row"><span class="lbl">Connections</span><span class="val" id="stream-connects">—</span></div>
-      <div class="url-row"><a class="url-text" id="stream-url-link" href="#" target="_blank">—</a><button class="copy-btn" id="copy-url-btn" onclick="copyStreamUrl()" title="Copy URL">Copy</button></div>
+      <div class="row"><span class="lbl">Sessions since boot</span><span class="val" id="stream-connects">—</span></div>
+      <div class="url-row"><span class="lbl">HTTP</span><a class="url-text" id="stream-url-link" href="#" target="_blank">—</a><button class="copy-btn" id="copy-url-btn" onclick="copyUrl('stream-url-link','copy-url-btn')" title="Copy HTTP URL">Copy</button></div>
+      <div class="url-row"><span class="lbl">RTSP</span><a class="url-text" id="rtsp-url-link" href="#">—</a><button class="copy-btn" id="copy-rtsp-url-btn" onclick="copyUrl('rtsp-url-link','copy-rtsp-url-btn')" title="Copy RTSP URL">Copy</button></div>
       <audio id="audio-player" controls preload="none"></audio>
       <a class="stream-open-btn disabled" id="stream-open-btn" href="#" target="_blank">&#9654; Open stream in new tab</a>
     </div>
@@ -55,18 +56,21 @@
 <script>
 function $(id){return document.getElementById(id)}
 function badge(ok,yes,no){return '<span class="badge '+(ok?'on':'off')+'">'+(ok?yes:no)+'</span>'}
+function badgeClass(cls,text){return '<span class="badge '+cls+'">'+text+'</span>'}
+function streamStateBadge(st){var t=st.active_transport||'none';if(st.rtsp_streaming)return badgeClass('on','RTSP streaming');if(st.active&&t==='http')return badgeClass('on','HTTP streaming');if(st.active&&t==='rtsp')return badgeClass('warn','RTSP connected');if(st.active)return badgeClass('on','active');return badgeClass('neutral','idle')}
 function wifiStateText(w){if(!w)return{cls:'neutral',text:'unknown'};if(w.sta_connected)return{cls:'on',text:'connected'};if(w.sta_connecting)return{cls:'warn',text:'connecting'};return{cls:'off',text:'disconnected'}}
 function setMsg(id,text,type){var el=$(id);el.textContent=text;el.className='msg '+(type||'ok')}
 function clearMsg(id,delay){setTimeout(function(){var el=$(id);if(el){el.textContent='';el.className='msg'}},delay||3000)}
 function setDisabled(el,yes){if(el)el.disabled=yes}
 function getJSON(url,cb,errCb){fetch(url).then(function(r){return r.json()}).then(cb).catch(function(e){console.warn(url,e);if(errCb)errCb(e)})}
 function postJSON(url,body,cb){var opts={method:'POST',headers:{'X-ESP32MIC-CSRF':'1'}};if(body){opts.body=new URLSearchParams(body);opts.headers['Content-Type']='application/x-www-form-urlencoded'}fetch(url,opts).then(function(r){return r.json()}).then(cb).catch(function(e){cb({error:String(e)})})}
-function copyStreamUrl(){var link=$('stream-url-link'),url=link.getAttribute('href');if(!url||url==='#')return;var btn=$('copy-url-btn');function done(){btn.textContent='Copied!';btn.className='copy-btn copied';setTimeout(function(){btn.textContent='Copy';btn.className='copy-btn'},1800)}if(navigator.clipboard)navigator.clipboard.writeText(url).then(done);else{var ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done()}}
+function copyUrl(linkId,btnId){var link=$(linkId),url=link?link.getAttribute('href'):'';if(!url||url==='#')return;var btn=$(btnId);function done(){btn.textContent='Copied!';btn.className='copy-btn copied';setTimeout(function(){btn.textContent='Copy';btn.className='copy-btn'},1800)}if(navigator.clipboard)navigator.clipboard.writeText(url).then(done);else{var ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done()}}
+function stopAudioPlayer(){var p=$('audio-player');if(!p)return;try{p.pause();p.removeAttribute('src');p.load()}catch(e){}}
 function renderWifi(w){var st=wifiStateText(w);$('wf-sta').innerHTML='<span class="badge '+st.cls+'">'+st.text+'</span>';$('wf-ssid').textContent=(w.connected_ssid||w.saved_ssid||(w.has_credentials?'(saved)':'—'));$('wf-ip').textContent=w.sta_ip||'—';if(w.sta_ip)$('hdr-ip').textContent=w.sta_ip}
-function fetchStatus(){getJSON('/api/status',function(d){var st=d.stream||{},url=st.url||'',link=$('stream-url-link'),openBtn=$('stream-open-btn'),player=$('audio-player');link.href=url||'#';link.textContent=url||'—';if(url){openBtn.href=url;openBtn.className='stream-open-btn';if(player.src!==url)player.src=url;var m=url.match(/https?:\/\/([\d.]+)/);if(m)$('hdr-ip').textContent=m[1]}else{openBtn.href='#';openBtn.className='stream-open-btn disabled'}$('stream-active').innerHTML=badge(st.active,'active','idle');$('stream-connects').textContent=st.connect_count||0;renderWifi(d.wifi||{})})}
+function fetchStatus(){getJSON('/api/status',function(d){var st=d.stream||{},rawUrl=st.url||'',wavUrl=st.wav_url||'',rtspUrl=st.rtsp_url||'',playerUrl=wavUrl||rawUrl||'',displayUrl=wavUrl||rawUrl||'',link=$('stream-url-link'),rtspLink=$('rtsp-url-link'),openBtn=$('stream-open-btn'),player=$('audio-player');link.href=displayUrl||'#';link.textContent=displayUrl||'—';rtspLink.href=rtspUrl||'#';rtspLink.textContent=rtspUrl||'—';if(playerUrl){openBtn.href=playerUrl;openBtn.className='stream-open-btn';if(player.src!==playerUrl)player.src=playerUrl;var m=playerUrl.match(/https?:\/\/([\d.]+)/);if(m)$('hdr-ip').textContent=m[1]}else{openBtn.href='#';openBtn.className='stream-open-btn disabled'}$('stream-active').innerHTML=streamStateBadge(st);$('stream-connects').textContent=st.connect_count||0;renderWifi(d.wifi||{})})}
 var actionLabels={'restart-audio':'Restart audio?','time-sync':'Sync time now?','reboot':'Reboot device?'};
 var actionIds={'restart-audio':'btn-restart-audio','time-sync':'btn-time-sync','reboot':'btn-reboot'};
-function doAction(name,btn){if(!confirm(actionLabels[name]||name))return;var buttons=Object.keys(actionIds).map(function(k){return $(actionIds[k])});buttons.forEach(function(b){setDisabled(b,true)});var old=btn?btn.textContent:'';if(btn)btn.textContent='…';setMsg('actions-msg','Running '+name+'…','info');postJSON('/api/action/'+name,null,function(d){buttons.forEach(function(b){setDisabled(b,false)});if(btn)btn.textContent=old;if(d.ok){setMsg('actions-msg',name+' done.','ok');if(name!=='reboot')setTimeout(fetchStatus,1200)}else setMsg('actions-msg',d.error||'failed','err');clearMsg('actions-msg',5000)})}
+function doAction(name,btn){if(!confirm(actionLabels[name]||name))return;if(name==='restart-audio')stopAudioPlayer();var buttons=Object.keys(actionIds).map(function(k){return $(actionIds[k])});buttons.forEach(function(b){setDisabled(b,true)});var old=btn?btn.textContent:'';if(btn)btn.textContent='…';setMsg('actions-msg','Running '+name+'…','info');postJSON('/api/action/'+name,null,function(d){buttons.forEach(function(b){setDisabled(b,false)});if(btn)btn.textContent=old;if(d.ok){setMsg('actions-msg',name+' done.','ok');if(name!=='reboot')setTimeout(fetchStatus,1200)}else setMsg('actions-msg',d.error||'failed','err');clearMsg('actions-msg',5000)})}
 fetchStatus();setInterval(fetchStatus,5000);
 </script>
 </body>
