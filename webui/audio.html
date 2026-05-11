@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ESP32 Audio Streamer Audio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;padding:1rem;display:flex;justify-content:center}.wrap{width:100%;max-width:760px}.top{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin:.2rem 0 .6rem}h1{font-size:1.3rem;font-weight:750}.nav{display:flex;gap:.35rem;flex-wrap:wrap;margin:0 0 1rem}.nav a{border:1px solid #e2e8f0;background:#fff;color:#475569;border-radius:999px;padding:.35rem .7rem;font-size:.82rem;font-weight:700;text-decoration:none}.nav a.active{background:#2563eb;border-color:#2563eb;color:#fff}.nav a:hover{text-decoration:none;background:#eff6ff}.nav a.active:hover{background:#1d4ed8}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.8rem}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}.span{grid-column:1/-1}h2{font-size:.76rem;font-weight:700;margin-bottom:.65rem;color:#6b7280;text-transform:uppercase;letter-spacing:.07em}.row{display:flex;justify-content:space-between;align-items:center;padding:.34rem 0;border-bottom:1px solid #f3f4f6;font-size:.86rem;gap:.75rem;min-height:1.9rem}.row:last-child{border-bottom:none}.lbl{color:#6b7280;white-space:nowrap;flex-shrink:0}.val{text-align:right;word-break:break-all;font-variant-numeric:tabular-nums}.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.16rem .55rem;border-radius:999px;font-size:.74rem;font-weight:700;line-height:1.2}.badge:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%}.on{background:#dcfce7;color:#15803d}.on:before{background:#22c55e}.off{background:#fee2e2;color:#b91c1c}.off:before{background:#ef4444}.neutral{background:#f1f5f9;color:#475569}.neutral:before{background:#94a3b8}.warn{background:#fef9c3;color:#854d0e}.warn:before{background:#eab308}a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}.url-row{display:flex;align-items:center;gap:.45rem;padding:.35rem 0;border-bottom:1px solid #f3f4f6;flex-wrap:wrap}.url-text{font-size:.82rem;color:#2563eb;word-break:break-all;flex:1;min-width:0}.copy-btn{flex-shrink:0;padding:.28rem .65rem;border:1px solid #d1d5db;background:#f9fafb;color:#374151;border-radius:7px;font-size:.76rem;font-weight:700;cursor:pointer}.copy-btn:hover{background:#e5e7eb}.copy-btn.copied{background:#dcfce7;color:#15803d;border-color:#bbf7d0}audio{width:100%;margin:.65rem 0 .35rem;height:36px;accent-color:#2563eb}.form .field{display:flex;align-items:center;gap:.65rem;margin:.55rem 0;font-size:.86rem}.form label{color:#4b5563;font-weight:700;min-width:150px;flex-shrink:0}.form input[type=number],.form select{width:100%;max-width:240px;padding:.42rem .5rem;border:1px solid #d1d5db;border-radius:8px;font-size:.9rem;background:#fff}.form input[type=number]{max-width:92px}.form input[type=checkbox]{width:18px;height:18px;accent-color:#2563eb}.form input:focus,.form select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px #dbeafe}.actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.8rem}.btn{padding:.48rem .8rem;border:none;border-radius:8px;cursor:pointer;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:.3rem;text-decoration:none}.btn:disabled{opacity:.48;cursor:not-allowed}.primary{background:#2563eb;color:#fff}.primary:not(:disabled):hover{background:#1d4ed8;text-decoration:none}.warning{background:#d97706;color:#fff}.warning:not(:disabled):hover{background:#b45309}.ghost{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.ghost:not(:disabled):hover{background:#e2e8f0;text-decoration:none}.msg{font-size:.84rem;margin-top:.75rem;min-height:1.2em;padding:.45rem .55rem;border-radius:8px}.msg:empty{padding:0}.msg.ok{color:#15803d;background:#dcfce7}.msg.err{color:#b91c1c;background:#fee2e2}.msg.info{color:#1d4ed8;background:#dbeafe}.hint{font-size:.76rem;color:#6b7280;line-height:1.4;margin-top:.55rem}@media(max-width:520px){body{padding:.75rem}.top{align-items:flex-start;flex-direction:column}.row,.form .field{align-items:flex-start;flex-direction:column;gap:.15rem}.val{text-align:left}.form label{min-width:0}.btn{font-size:.8rem;padding:.44rem .7rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>Audio</h1></div>
+  <nav class="nav" aria-label="Main navigation"><a href="/">Dashboard</a><a href="/wifi">Wi-Fi</a><a class="active" href="/audio">Audio</a><a href="/system">System</a></nav>
+  <div class="grid">
+    <div class="card">
+      <h2>Audio status</h2>
+      <div class="row"><span class="lbl">I2S</span><span class="val" id="au-i2s">—</span></div>
+      <div class="row"><span class="lbl">Ring buffer</span><span class="val" id="au-rb">—</span></div>
+      <div class="row"><span class="lbl">Sample rate</span><span class="val" id="au-sr">—</span></div>
+      <div class="row"><span class="lbl">Audio profile</span><span class="val" id="au-profile">—</span></div>
+      <div class="row"><span class="lbl">Stream format</span><span class="val" id="au-wav">—</span></div>
+      <div class="row"><span class="lbl">HPF enabled</span><span class="val" id="au-hpf">—</span></div>
+      <div class="row"><span class="lbl">HPF cutoff</span><span class="val" id="au-hpf-hz">—</span></div>
+      <div class="row"><span class="lbl">Convert shift</span><span class="val" id="au-conv-shift">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Levels & counters</h2>
+      <div class="row"><span class="lbl">Peak level</span><span class="val" id="au-peak">—</span></div>
+      <div class="row"><span class="lbl">Peak hold</span><span class="val" id="au-peak-hold">—</span></div>
+      <div class="row"><span class="lbl">Clip count</span><span class="val" id="au-clips">—</span></div>
+      <div class="row"><span class="lbl">Clipped last block</span><span class="val" id="au-clip-last">—</span></div>
+      <div class="row"><span class="lbl">I2S errors</span><span class="val" id="au-i2s-err">—</span></div>
+      <div class="row"><span class="lbl">RB drops</span><span class="val" id="au-rb-drop">—</span></div>
+      <div class="row"><span class="lbl">Write stalls</span><span class="val" id="au-write-stalls">—</span></div>
+      <div class="row"><span class="lbl">Stream timeouts</span><span class="val" id="au-timeouts">—</span></div>
+    </div>
+
+    <div class="card span">
+      <h2>Stream details</h2>
+      <div class="row"><span class="lbl">Status</span><span class="val" id="stream-active">—</span></div>
+      <div class="row"><span class="lbl">Sessions since boot</span><span class="val" id="stream-connects">—</span></div>
+      <div class="row"><span class="lbl">TX bytes</span><span class="val" id="au-tx-bytes">—</span></div>
+      <div class="url-row"><span class="lbl">HTTP</span><a class="url-text" id="stream-url-link" href="#" target="_blank">—</a><button class="copy-btn" id="copy-url-btn" onclick="copyUrl('stream-url-link','copy-url-btn')">Copy</button></div>
+      <div class="url-row"><span class="lbl">RTSP</span><a class="url-text" id="rtsp-url-link" href="#">—</a><button class="copy-btn" id="copy-rtsp-url-btn" onclick="copyUrl('rtsp-url-link','copy-rtsp-url-btn')">Copy</button></div>
+      <audio id="audio-player" controls preload="none"></audio>
+    </div>
+
+    <div class="card">
+      <h2>Audio settings</h2>
+      <form class="form" id="settings-form" onsubmit="return applyAudioSettings(event)">
+        <div class="field"><label for="inp-profile">Audio profile</label><select id="inp-profile"><option value="quality_48k">Quality — 48 kHz</option><option value="stability_24k">Stability — 24 kHz</option></select></div>
+        <div class="field"><label for="inp-hpf-en">HPF enabled</label><input type="checkbox" id="inp-hpf-en"/></div>
+        <div class="field"><label for="inp-hpf-hz">HPF cutoff (Hz)</label><input type="number" id="inp-hpf-hz" min="20" max="8000" step="1" value="80"/></div>
+        <div class="field"><label for="inp-conv-shift">Convert shift</label><input type="number" id="inp-conv-shift" min="1" max="31" step="1" value="11"/></div>
+        <div class="hint">Changes are saved to NVS. Restart audio to apply a changed audio profile or convert_shift.</div>
+        <div class="actions"><button class="btn primary" id="apply-btn" type="submit">Apply</button></div>
+        <div class="msg" id="settings-msg"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Audio actions</h2>
+      <div class="actions">
+        <button class="btn warning" id="btn-restart-audio" onclick="doAction('restart-audio',this)">Restart Audio</button>
+        <button class="btn ghost" onclick="resetPeakHold()">Reset Peak</button>
+        <button class="btn ghost" onclick="pollAll()">Refresh</button>
+      </div>
+      <div class="msg" id="actions-msg"></div>
+    </div>
+  </div>
+</div>
+<script>
+var configuredConvertShift=null,configuredAudioProfile=null;
+function $(id){return document.getElementById(id)}
+function badge(ok,yes,no){return '<span class="badge '+(ok?'on':'off')+'">'+(ok?yes:no)+'</span>'}
+function badgeClass(cls,text){return '<span class="badge '+cls+'">'+text+'</span>'}
+function streamStateBadge(st){var t=st.active_transport||'none';if(st.rtsp_streaming)return badgeClass('on','RTSP streaming');if(st.active&&t==='http')return badgeClass('on','HTTP streaming');if(st.active&&t==='rtsp')return badgeClass('warn','RTSP connected');if(st.active)return badgeClass('on','active');return badgeClass('neutral','idle')}
+function fmtBytes(b){if(b>=1048576)return(b/1048576).toFixed(1)+' MB';if(b>=1024)return(b/1024).toFixed(1)+' kB';return(b||0)+' B'}
+function profileLabel(p){return p==='stability_24k'?'Stability — 24 kHz':p==='quality_48k'?'Quality — 48 kHz':(p||'—')}
+function setMsg(id,text,type){var el=$(id);el.textContent=text;el.className='msg '+(type||'ok')}
+function clearMsg(id,delay){setTimeout(function(){var el=$(id);if(el){el.textContent='';el.className='msg'}},delay||3500)}
+function setDisabled(el,yes){if(el)el.disabled=yes}
+function getJSON(url,cb,errCb){fetch(url).then(function(r){return r.json()}).then(cb).catch(function(e){console.warn(url,e);if(errCb)errCb(e)})}
+function postJSON(url,body,cb){var opts={method:'POST',headers:{'X-ESP32MIC-CSRF':'1'}};if(body){opts.body=new URLSearchParams(body);opts.headers['Content-Type']='application/x-www-form-urlencoded'}fetch(url,opts).then(function(r){return r.json()}).then(cb).catch(function(e){cb({error:String(e)})})}
+function copyUrl(linkId,btnId){var link=$(linkId),url=link?link.getAttribute('href'):'';if(!url||url==='#')return;var btn=$(btnId);function done(){btn.textContent='Copied!';btn.className='copy-btn copied';setTimeout(function(){btn.textContent='Copy';btn.className='copy-btn'},1800)}if(navigator.clipboard)navigator.clipboard.writeText(url).then(done);else{var ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);done()}}
+function stopAudioPlayer(){var p=$('audio-player');if(!p)return;try{p.pause();p.removeAttribute('src');p.load()}catch(e){}}
+function fetchStatus(){getJSON('/api/status',function(d){var s=d.settings||{},st=d.stream||{},url=st.url||'',rtspUrl=st.rtsp_url||'';configuredConvertShift=s.convert_shift!=null?s.convert_shift:null;configuredAudioProfile=s.audio_profile||null;if(document.activeElement!==$('inp-profile'))$('inp-profile').value=s.audio_profile||'quality_48k';if(document.activeElement!==$('inp-hpf-en'))$('inp-hpf-en').checked=!!s.hpf_enabled;if(document.activeElement!==$('inp-hpf-hz'))$('inp-hpf-hz').value=s.hpf_cutoff_hz||80;if(document.activeElement!==$('inp-conv-shift'))$('inp-conv-shift').value=s.convert_shift!=null?s.convert_shift:11;var wavUrl=st.wav_url||'';$('stream-active').innerHTML=streamStateBadge(st);$('stream-connects').textContent=st.connect_count||0;$('stream-url-link').href=wavUrl||url||'#';$('stream-url-link').textContent=wavUrl||url||'—';$('rtsp-url-link').href=rtspUrl||'#';$('rtsp-url-link').textContent=rtspUrl||'—';if(wavUrl&&$('audio-player').src!==wavUrl)$('audio-player').src=wavUrl})}
+function fetchAudioStatus(){getJSON('/api/audio_status',function(d){$('au-i2s').innerHTML=badge(d.i2s_ok,'ok','error');$('au-rb').innerHTML=badge(d.ringbuf_ok,'ok','error');$('au-sr').textContent=d.sample_rate_hz?d.sample_rate_hz+' Hz':'—';var activeProfile=d.audio_profile||null;if(!activeProfile)$('au-profile').textContent='—';else if(configuredAudioProfile&&configuredAudioProfile!==activeProfile)$('au-profile').innerHTML='<span class="badge warn" title="Restart audio to apply saved profile">active '+profileLabel(activeProfile)+' / cfg '+profileLabel(configuredAudioProfile)+'</span>';else $('au-profile').textContent=profileLabel(activeProfile);$('au-wav').innerHTML=badge(d.stream_wav_enable,'WAV','PCM L16');$('au-hpf').innerHTML=badge(d.hpf_enabled,'on','off');$('au-hpf-hz').textContent=d.hpf_cutoff_hz?d.hpf_cutoff_hz+' Hz':'—';var active=d.convert_shift!=null?d.convert_shift:null;if(active==null)$('au-conv-shift').textContent='—';else if(configuredConvertShift!=null&&configuredConvertShift!==active)$('au-conv-shift').innerHTML='<span class="badge warn" title="Restart audio to apply saved value">active '+active+' / cfg '+configuredConvertShift+'</span>';else $('au-conv-shift').textContent=String(active);$('au-peak').textContent=d.peak_level!=null?d.peak_level:'—';$('au-peak-hold').textContent=d.peak_hold!=null?d.peak_hold:'—';$('au-clips').textContent=d.clip_count!=null?d.clip_count:'—';$('au-clip-last').innerHTML=badge(d.clipped_last_block,'yes','no');$('au-i2s-err').innerHTML=(d.i2s_error_count||0)>0?'<span class="badge warn">'+d.i2s_error_count+'</span>':String(d.i2s_error_count||0);$('au-rb-drop').innerHTML=(d.rb_drop_count||0)>0?'<span class="badge warn">'+d.rb_drop_count+'</span>':String(d.rb_drop_count||0);$('au-tx-bytes').textContent=fmtBytes(d.stream_tx_bytes||0);$('au-write-stalls').innerHTML=(d.stream_write_stalls||0)>0?'<span class="badge warn">'+d.stream_write_stalls+'</span>':String(d.stream_write_stalls||0);$('au-timeouts').innerHTML=(d.stream_timeout_count||0)>0?'<span class="badge warn">'+d.stream_timeout_count+'</span>':String(d.stream_timeout_count||0)})}
+function applyAudioSettings(e){if(e)e.preventDefault();stopAudioPlayer();var btn=$('apply-btn');setDisabled(btn,true);btn.textContent='Saving…';postJSON('/api/set',{audio_profile:$('inp-profile').value,hpf_enabled:$('inp-hpf-en').checked?'1':'0',hpf_cutoff_hz:$('inp-hpf-hz').value,convert_shift:$('inp-conv-shift').value},function(d){setDisabled(btn,false);btn.textContent='Apply';if(d.ok){var msg='Saved.';if(d.restart_audio_required)msg+=' Restart audio required for audio profile or convert_shift.';setMsg('settings-msg',msg,'ok');fetchStatus();fetchAudioStatus()}else setMsg('settings-msg',d.error||'Unknown error','err');clearMsg('settings-msg',4500)});return false}
+function resetPeakHold(){postJSON('/api/action/reset-peak-hold',null,function(d){if(d.ok){setMsg('actions-msg','Peak reset.','ok');fetchAudioStatus()}else setMsg('actions-msg',d.error||'reset failed','err');clearMsg('actions-msg',3000)})}
+function doAction(name,btn){if(!confirm('Restart audio?'))return;stopAudioPlayer();setDisabled(btn,true);var old=btn.textContent;btn.textContent='…';setMsg('actions-msg','Restarting audio…','info');postJSON('/api/action/'+name,null,function(d){setDisabled(btn,false);btn.textContent=old;if(d.ok){setMsg('actions-msg','Audio restarted.','ok');setTimeout(pollAll,1200)}else setMsg('actions-msg',d.error||'restart failed','err');clearMsg('actions-msg',4000)})}
+function pollAll(){fetchStatus();fetchAudioStatus()}
+pollAll();setInterval(pollAll,5000);
+</script>
+</body>
+</html>

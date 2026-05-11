@@ -53,6 +53,7 @@ static const char* const KEY_WIFI_TX_POWER   = "wifi_tx_dbm";
 static const char* const KEY_HPF_ENABLED     = "hpf_en";
 static const char* const KEY_HPF_CUTOFF_HZ   = "hpf_hz";
 static const char* const KEY_CONVERT_SHIFT   = "conv_shift";
+static const char* const KEY_AUDIO_PROFILE   = "audio_prof";
 
 // --------------------------------------------------------
 // Global instance
@@ -62,6 +63,7 @@ RuntimeSettings g_runtime_settings = {
     .hpf_enabled       = (HPF_ENABLE != 0),
     .hpf_cutoff_hz     = (int16_t)HPF_CUTOFF_HZ,
     .convert_shift     = (int8_t)CONVERT_SHIFT,
+    .audio_profile     = AUDIO_PROFILE_QUALITY_48K,
 };
 
 // --------------------------------------------------------
@@ -77,6 +79,10 @@ bool runtimeSettings_validateHpfCutoffHz(int v) {
 
 bool runtimeSettings_validateConvertShift(int v) {
     return v >= 1 && v <= 31;
+}
+
+bool runtimeSettings_validateAudioProfile(int v) {
+    return v == (int)AUDIO_PROFILE_QUALITY_48K || v == (int)AUDIO_PROFILE_STABILITY_24K;
 }
 
 // --------------------------------------------------------
@@ -122,12 +128,22 @@ void runtimeSettings_load() {
         }
     }
 
+    if (rt.isKey(KEY_AUDIO_PROFILE)) {
+        int v = (int)rt.getUChar(KEY_AUDIO_PROFILE, (uint8_t)AUDIO_PROFILE_QUALITY_48K);
+        if (runtimeSettings_validateAudioProfile(v)) {
+            g_runtime_settings.audio_profile = (AudioProfile)v;
+        } else {
+            LOGW("Stored audio_profile=%d invalid; using default (quality_48k)\n", v);
+        }
+    }
+
     rt.end();
-    LOGI("Loaded: wifi_tx_dbm=%d hpf_en=%d hpf_hz=%d convert_shift=%d\n",
+    LOGI("Loaded: wifi_tx_dbm=%d hpf_en=%d hpf_hz=%d convert_shift=%d audio_profile=%s\n",
          (int)g_runtime_settings.wifi_tx_power_dbm,
          (int)g_runtime_settings.hpf_enabled,
          (int)g_runtime_settings.hpf_cutoff_hz,
-         (int)g_runtime_settings.convert_shift);
+         (int)g_runtime_settings.convert_shift,
+         audioProfile_name(g_runtime_settings.audio_profile));
 }
 
 void runtimeSettings_save() {
@@ -142,11 +158,12 @@ void runtimeSettings_save() {
     rt.putBool(KEY_HPF_ENABLED,   g_runtime_settings.hpf_enabled);
     rt.putShort(KEY_HPF_CUTOFF_HZ, (int16_t)g_runtime_settings.hpf_cutoff_hz);
     rt.putChar(KEY_CONVERT_SHIFT,  (int8_t)g_runtime_settings.convert_shift);
+    rt.putUChar(KEY_AUDIO_PROFILE, (uint8_t)g_runtime_settings.audio_profile);
     rt.end();
 }
 
 // --------------------------------------------------------
-// Mutators
+// Wi-Fi TX power application
 // --------------------------------------------------------
 static wifi_power_t mapDbmToEnum(int dbm) {
     if (dbm >= 20) return WIFI_POWER_19_5dBm;
@@ -163,6 +180,17 @@ static wifi_power_t mapDbmToEnum(int dbm) {
     return WIFI_POWER_MINUS_1dBm;
 }
 
+void runtimeSettings_applyWifiTxPower() {
+    wifi_power_t txp = mapDbmToEnum((int)g_runtime_settings.wifi_tx_power_dbm);
+    WiFi.setTxPower(txp);
+    LOGI("wifi_tx_power_dbm applied: %d (enum=%d)\n",
+         (int)g_runtime_settings.wifi_tx_power_dbm, (int)txp);
+}
+
+// --------------------------------------------------------
+// Mutators
+// --------------------------------------------------------
+
 bool runtimeSettings_setWifiTxPowerDbm(int v, char* errmsg, size_t errmsg_sz) {
     if (!runtimeSettings_validateWifiTxPower(v)) {
         snprintf(errmsg, errmsg_sz, "wifi_tx_power_dbm must be in [-1, 20], got %d", v);
@@ -170,8 +198,7 @@ bool runtimeSettings_setWifiTxPowerDbm(int v, char* errmsg, size_t errmsg_sz) {
     }
     g_runtime_settings.wifi_tx_power_dbm = (int8_t)v;
     runtimeSettings_save();
-    // Apply immediately — WiFi is already connected
-    WiFi.setTxPower(mapDbmToEnum(v));
+    runtimeSettings_applyWifiTxPower();
     LOGI("wifi_tx_power_dbm set to %d\n", v);
     return true;
 }
@@ -208,5 +235,19 @@ bool runtimeSettings_setConvertShift(int v, char* errmsg, size_t errmsg_sz) {
     runtimeSettings_save();
     // NOTE: does NOT hot-apply — restart-audio is required for this to take effect.
     LOGI("convert_shift configured to %d (restart-audio required)\n", v);
+    return true;
+}
+
+bool runtimeSettings_setAudioProfile(int v, char* errmsg, size_t errmsg_sz) {
+    if (!runtimeSettings_validateAudioProfile(v)) {
+        snprintf(errmsg, errmsg_sz,
+                 "audio_profile must be 0 (quality_48k) or 1 (stability_24k), got %d", v);
+        return false;
+    }
+    g_runtime_settings.audio_profile = (AudioProfile)v;
+    runtimeSettings_save();
+    // NOTE: does NOT hot-apply — restart-audio is required for this to take effect.
+    LOGI("audio_profile configured to %s (restart-audio required)\n",
+         audioProfile_name(g_runtime_settings.audio_profile));
     return true;
 }

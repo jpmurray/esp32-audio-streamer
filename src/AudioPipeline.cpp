@@ -57,7 +57,10 @@
 #define CHUNK_FRAMES 1024
 #endif
 #ifndef RB_CAPACITY_BYTES
-#define RB_CAPACITY_BYTES (64 * 1024)
+// Default ring buffer: 256 KB — large enough for ~1.3 s at 48 kHz / 16-bit mono
+// or ~2.7 s at 24 kHz / 16-bit mono.  The expanded buffer absorbs Wi-Fi hiccups
+// and reduces drop counts that cause BirdNET-Go to restart the stream.
+#define RB_CAPACITY_BYTES (256 * 1024)
 #endif
 #ifndef USE_RIGHT_CHANNEL
 #define USE_RIGHT_CHANNEL 1
@@ -119,9 +122,11 @@ static volatile uint32_t s_rb_drop_count     = 0;
 // ------------------------------------------------------------
 // I2S producer task
 // ------------------------------------------------------------
-// Active convert_shift used by the running producer task.
+// Active convert_shift and sample rate used by the running producer task.
 // Set once during audioPipeline_init(); read-only after that.
 static volatile int s_active_convert_shift = CONVERT_SHIFT;
+static volatile int s_active_sample_rate_hz = SAMPLE_RATE_HZ;
+static volatile size_t s_active_ringbuf_capacity = 0;
 
 static void i2sProducerTask(void* /*arg*/) {
     const size_t frames_per_chunk = CHUNK_FRAMES;
@@ -183,13 +188,20 @@ static void i2sProducerTask(void* /*arg*/) {
 // Public API
 // ------------------------------------------------------------
 bool audioPipeline_init() {
+    // --- Resolve sample rate from runtime audio profile ---
+    // If the runtime profile has been configured, honour it; otherwise fall back
+    // to the compile-time SAMPLE_RATE_HZ constant.
+    const int sample_rate_hz = audioProfile_sampleRateHz(g_runtime_settings.audio_profile);
+    s_active_sample_rate_hz  = sample_rate_hz;
+    s_active_convert_shift   = (int)g_runtime_settings.convert_shift;
+
     // --- I2S driver ---
     i2s_config_t cfg = {};
     cfg.mode                = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX);
-    cfg.sample_rate         = SAMPLE_RATE_HZ;
+    cfg.sample_rate         = (uint32_t)sample_rate_hz;
     cfg.bits_per_sample     = (i2s_bits_per_sample_t)BITS_PER_SAMPLE;
     cfg.channel_format      = I2S_CHAN_FMT;
-    cfg.communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB);
+    cfg.communication_format = I2S_COMM_FORMAT_STAND_I2S;
     cfg.intr_alloc_flags    = ESP_INTR_FLAG_LEVEL1;
     cfg.dma_buf_count       = DMA_BUF_COUNT;
     cfg.dma_buf_len         = DMA_BUF_LEN;
@@ -214,28 +226,52 @@ bool audioPipeline_init() {
     }
 
     i2s_zero_dma_buffer(I2S_PORT);
-    i2s_set_clk(I2S_PORT, SAMPLE_RATE_HZ,
+    i2s_set_clk(I2S_PORT, (uint32_t)sample_rate_hz,
                 (i2s_bits_per_sample_t)BITS_PER_SAMPLE, I2S_CHANNEL_MONO);
 
-    LOGI("[I2S] init ok: %d Hz, %d-bit, mono, WS=%d, SCK=%d, SD=%d\n",
-         SAMPLE_RATE_HZ, BITS_PER_SAMPLE, PIN_I2S_WS, PIN_I2S_SCK, PIN_I2S_SD);
+    LOGI("[I2S] init ok: %d Hz (%s), %d-bit, mono, WS=%d, SCK=%d, SD=%d\n",
+         sample_rate_hz,
+         audioProfile_name(g_runtime_settings.audio_profile),
+         BITS_PER_SAMPLE, PIN_I2S_WS, PIN_I2S_SCK, PIN_I2S_SD);
     g_i2s_ok = true;
 
     // --- Ring buffer ---
-    g_ringbuf = xRingbufferCreate(RINGBUF_CAPACITY, RINGBUF_TYPE_BYTEBUF);
+    // Prefer the configured capacity, but fall back to smaller buffers on
+    // RAM-constrained ESP32 variants instead of failing the whole pipeline.
+    static const size_t kFallbackCaps[] = {
+        RINGBUF_CAPACITY,
+        192 * 1024,
+        128 * 1024,
+        96 * 1024,
+        64 * 1024,
+    };
+    s_active_ringbuf_capacity = 0;
+    for (size_t i = 0; i < (sizeof(kFallbackCaps) / sizeof(kFallbackCaps[0])); ++i) {
+        size_t cap = kFallbackCaps[i];
+        if (s_active_ringbuf_capacity == cap) continue;  // skip duplicates
+        g_ringbuf = xRingbufferCreate(cap, RINGBUF_TYPE_BYTEBUF);
+        if (g_ringbuf) {
+            s_active_ringbuf_capacity = cap;
+            break;
+        }
+    }
     if (!g_ringbuf) {
-        LOGE("[RB] create failed\n");
+        LOGE("[RB] create failed at %u/%u/%u/%u/%u bytes\n",
+             (unsigned)kFallbackCaps[0], (unsigned)kFallbackCaps[1],
+             (unsigned)kFallbackCaps[2], (unsigned)kFallbackCaps[3],
+             (unsigned)kFallbackCaps[4]);
         return false;
     }
     g_rb_ok = true;
 
     xTaskCreatePinnedToCore(i2sProducerTask, "i2s_producer",
                             6144, nullptr, 5, &g_i2s_task, 0);
-    LOGI("[RB] created %u bytes, producer task started\n", (unsigned)RINGBUF_CAPACITY);
+    LOGI("[RB] created %u bytes, producer task started\n",
+         (unsigned)s_active_ringbuf_capacity);
 
     // --- HPF coefficients ---
-    const float fs = (float)SAMPLE_RATE_HZ;
-    const float fc = (float)HPF_CUTOFF_HZ;
+    const float fs = (float)sample_rate_hz;
+    const float fc = (float)g_runtime_settings.hpf_cutoff_hz;
     float R = expf(-2.0f * PI_F * fc / fs);
     float aq = R * 32768.0f;
     if (aq < 0.0f)     aq = 0.0f;
@@ -243,11 +279,11 @@ bool audioPipeline_init() {
     s_hpf_a_q15 = (int32_t)lrintf(aq);
     LOGI("[HPF] %s, fc=%d Hz, R=%.6f (a_q15=%ld)\n",
          s_hpf_enabled ? "ENABLED" : "disabled",
-         (int)HPF_CUTOFF_HZ, R, (long)s_hpf_a_q15);
+         (int)g_runtime_settings.hpf_cutoff_hz, R, (long)s_hpf_a_q15);
 
-    // Pick up runtime-configured convert_shift (set before producer task starts)
-    s_active_convert_shift = (int)g_runtime_settings.convert_shift;
-    LOGI("[AP] convert_shift=%d\n", s_active_convert_shift);
+    LOGI("[AP] profile=%s sample_rate=%d convert_shift=%d\n",
+         audioProfile_name(g_runtime_settings.audio_profile),
+         s_active_sample_rate_hz, s_active_convert_shift);
 
     return true;
 }
@@ -293,10 +329,18 @@ int audioPipeline_getActiveConvertShift() {
     return s_active_convert_shift;
 }
 
+int audioPipeline_getActiveSampleRateHz() {
+    return s_active_sample_rate_hz;
+}
+
+size_t audioPipeline_getRingBufCapacityBytes() {
+    return s_active_ringbuf_capacity ? s_active_ringbuf_capacity : RINGBUF_CAPACITY;
+}
+
 void audioPipeline_setHpfConfig(bool enabled, int cutoff_hz) {
     s_hpf_enabled = enabled;
     // Recompute Q15 coefficient for new cutoff
-    const float fs = (float)SAMPLE_RATE_HZ;
+    const float fs = (float)s_active_sample_rate_hz;
     const float fc = (float)cutoff_hz;
     float R = expf(-2.0f * PI_F * fc / fs);
     float aq = R * 32768.0f;
