@@ -46,6 +46,7 @@ curl -X POST \
 | `/api/logs` | Recent in-memory logs |
 | `/api/wifi_status` | Saved/connected SSID, IPs, RSSI, setup AP state, last error |
 | `/api/wifi_scan` | Wi-Fi scan results |
+| `/api/ota/status` | OTA phase, progress, free slot size, last error |
 
 ## POST endpoints
 
@@ -59,6 +60,24 @@ curl -X POST \
 | `/api/action/reset-peak-hold` | Reset peak-hold level |
 | `/api/action/time-sync` | Force NTP sync |
 | `/api/action/reboot` | Reboot the ESP32 |
+| `/api/ota/upload` | Upload a `firmware.bin` for OTA flash; device reboots on success |
+| `/api/ota/abort` | Abort an upload in progress |
+
+## `/api/status` build identifier
+
+`/api/status` includes a `build` object that can be used to confirm which firmware booted after OTA:
+
+```json
+{
+  "build": {
+    "id": "May 12 2026 14:03:21",
+    "date": "May 12 2026",
+    "time": "14:03:21"
+  }
+}
+```
+
+By default this is the compile date/time. It can be overridden at build time with a `BUILD_ID` macro if needed.
 
 ## `/api/set` settings
 
@@ -84,6 +103,102 @@ curl -X POST \
   -H 'X-ESP32MIC-CSRF: 1' \
   http://<device-ip>/api/action/restart-audio
 ```
+
+## OTA firmware update endpoints
+
+### `GET /api/ota/status`
+
+Returns the current OTA state. No CSRF header required.
+
+```bash
+curl http://<device-ip>/api/ota/status
+```
+
+Response:
+
+```json
+{
+  "supported": true,
+  "phase": "idle",
+  "progress": 0,
+  "free_ota_space": 1507328,
+  "maintenance": false,
+  "reboot_pending": false,
+  "last_error": ""
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `supported` | bool | Always `true` when this endpoint exists |
+| `phase` | string | `idle`, `receiving`, `success_reboot_pending`, or `failed` |
+| `progress` | int | Upload progress 0–100; only meaningful while `phase` is `receiving` |
+| `free_ota_space` | uint | Bytes available in the inactive OTA slot; `0` if no OTA partition is present |
+| `maintenance` | bool | `true` while receiving or reboot is pending; deep sleep is inhibited |
+| `reboot_pending` | bool | `true` after a successful upload, until the device reboots |
+| `last_error` | string | Human-readable error from the most recent failed attempt; empty when none |
+
+---
+
+### `POST /api/ota/upload`
+
+Uploads a firmware binary. Requires `X-ESP32MIC-CSRF: 1`. Send the file as a `multipart/form-data` body (standard browser `<input type="file">` or `curl -F`).
+
+```bash
+curl -X POST \
+  -H 'X-ESP32MIC-CSRF: 1' \
+  -F 'firmware=@.pio/build/wemos_d1_mini32/firmware.bin' \
+  http://<device-ip>/api/ota/upload
+```
+
+Success response (`200`):
+
+```json
+{"ok": true, "message": "Update complete; rebooting"}
+```
+
+Error responses:
+
+| HTTP status | `error` value | Cause |
+|---|---|---|
+| `403` | `CSRF check failed` | Missing or incorrect CSRF header |
+| `409` | `update already in progress` | Another upload is active or a successful update is already reboot-pending |
+| `500` | `stream did not drain in time` | Active stream could not be stopped before flash |
+| `500` | `upload interrupted (client disconnected)` | Browser/network aborted before the upload completed |
+| `500` | `image too large (N bytes) for OTA slot (M bytes)` | Binary exceeds inactive slot size |
+| `500` | `no OTA partition available` | Device was not serial-flashed with the OTA partition table |
+| `500` | `aborted by request` | `/api/ota/abort` was called during upload |
+| `500` | _(Update.h error string)_ | Flash write or verification failure |
+
+The device reboots automatically ~1.5 s after the `200` response is sent.
+
+---
+
+### `POST /api/ota/abort`
+
+Aborts an upload that is currently in the `receiving` phase. Requires `X-ESP32MIC-CSRF: 1`.
+
+```bash
+curl -X POST \
+  -H 'X-ESP32MIC-CSRF: 1' \
+  http://<device-ip>/api/ota/abort
+```
+
+Success response (`200`):
+
+```json
+{"ok": true, "message": "OTA aborted"}
+```
+
+Conflict response (`409`, no upload in progress or already past receiving):
+
+```json
+{"ok": false, "error": "no update in progress or not safe to abort"}
+```
+
+Abort is only accepted while `phase` is `receiving`. It cannot cancel a reboot that is already pending.
+
+---
 
 ## Stream status fields
 

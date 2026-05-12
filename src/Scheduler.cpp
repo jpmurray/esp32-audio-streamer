@@ -57,6 +57,11 @@ static const double kLat = (double)LAT;
 static const double kLon = (double)LON;
 
 // ------------------------------------------------------------
+// Maintenance inhibit state
+// ------------------------------------------------------------
+static bool s_maintenance_inhibit = false;
+
+// ------------------------------------------------------------
 // Internal helpers
 // ------------------------------------------------------------
 static double deg2rad(double d) { return d * (PI / 180.0); }
@@ -249,8 +254,25 @@ time_t scheduler_nextCivilDawnAfter(time_t now) {
     return 0;
 }
 
+void scheduler_setMaintenanceInhibit(bool active) {
+    s_maintenance_inhibit = active;
+    if (active) {
+        LOGI("[SLEEP] Maintenance inhibit set; deep sleep blocked\n");
+    } else {
+        LOGI("[SLEEP] Maintenance inhibit cleared\n");
+    }
+}
+
+bool scheduler_maintenanceInhibit() {
+    return s_maintenance_inhibit;
+}
+
 void scheduler_deepSleepUntil(time_t target) {
     if (target <= 0) return;
+    if (s_maintenance_inhibit) {
+        LOGI("[SLEEP] Deep sleep suppressed: maintenance inhibit active\n");
+        return;
+    }
     time_t now = time(nullptr);
     int64_t sec = (int64_t)target - (int64_t)now;
     if (sec < 5) sec = 5;
@@ -272,6 +294,7 @@ void scheduler_deepSleepUntil(time_t target) {
 
 void scheduler_trySleepIfNight(time_t now) {
     if (!scheduler_timeIsValid()) return;
+    if (s_maintenance_inhibit) return;
     if (millis() - g_boot_ms < 20000) return;
     scheduler_ensureSchedule(now);
     if (now >= g_today_dusk_utc || now < g_today_dawn_utc) {

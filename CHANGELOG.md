@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- OTA updates available from the system page.
+
 ## 2.0.0
 
 I should have done changelogs before 2.0.0. I'll do better now, I promise !

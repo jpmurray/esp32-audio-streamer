@@ -21,6 +21,7 @@
 #include "LogBuffer.h"
 #include "HttpControl.h"
 #include "WebUI_gz.h"
+#include "OtaManager.h"
 
 // ------------------------------------------------------------
 // Logging (compile-time): -D LOG_LEVEL=1/2/3
@@ -471,6 +472,8 @@ void setup() {
     server.begin();
     LOGI("HTTP control server started on :%d\n", (int)SERVER_PORT);
 
+    otaManager_init();
+
     if (networkManager_staConnected()) {
         startNormalServicesOnce();
     } else if (networkManager_setupApActive()) {
@@ -484,6 +487,7 @@ void setup() {
 
 void loop() {
     server.handleClient();
+    otaManager_loop();
     networkManager_loop();
 
     if (networkManager_staConnected()) {

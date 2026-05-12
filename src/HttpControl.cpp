@@ -8,6 +8,7 @@
 #include "RuntimeSettings.h"
 #include "NetworkManager.h"
 #include "LogBuffer.h"
+#include "OtaManager.h"
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -131,6 +132,10 @@ static void sendJsonError(WebServer& server, int code, const char* error) {
                 String("{\"error\":\"") + jsonEscape(error) + "\"}");
 }
 
+#ifndef BUILD_ID
+#define BUILD_ID __DATE__ " " __TIME__
+#endif
+
 // --------------------------------------------------------
 // GET /api/status
 // --------------------------------------------------------
@@ -193,6 +198,7 @@ static void handleApiStatus(WebServer& server) {
         "\"mode\":\"%s\","
         "\"boot_count\":%lu,"
         "\"uptime_sec\":%lu,"
+        "\"build\":{\"id\":\"%s\",\"date\":\"%s\",\"time\":\"%s\"},"
         "\"location\":{\"lat\":%.5f,\"lon\":%.5f},"
         "\"today\":{\"civil_dawn_utc\":\"%s\",\"civil_dusk_utc\":\"%s\"},"
         "\"tomorrow\":{\"civil_dawn_utc\":\"%s\",\"civil_dusk_utc\":\"%s\"},"
@@ -226,6 +232,7 @@ static void handleApiStatus(WebServer& server) {
         now_iso, mode,
         (unsigned long)g_boot_count,
         (unsigned long)(millis() / 1000UL),
+        BUILD_ID, __DATE__, __TIME__,
         (float)LAT, (float)LON,
         tdawn_iso, tdusk_iso,
         mdawn_iso, mdusk_iso,
@@ -794,6 +801,61 @@ static void handleApiReboot(WebServer& server) {
 }
 
 // --------------------------------------------------------
+// GET /api/ota/status
+// --------------------------------------------------------
+static void handleApiOtaStatus(WebServer& server) {
+    OtaPhase phase = otaManager_phase();
+    const char* phase_str = "idle";
+    switch (phase) {
+        case OtaPhase::idle:                   phase_str = "idle";                   break;
+        case OtaPhase::receiving:              phase_str = "receiving";              break;
+        case OtaPhase::success_reboot_pending: phase_str = "success_reboot_pending"; break;
+        case OtaPhase::failed:                 phase_str = "failed";                 break;
+    }
+    char body[384];
+    // Escape last_error defensively (reuse the module-local jsonEscape helper).
+    String escaped_err = jsonEscape(otaManager_lastError());
+    // ESP.getFreeSketchSpace() returns the size of the inactive OTA slot available
+    // for the next upload; 0 if the OTA partition table is not present.
+    uint32_t free_ota = ESP.getFreeSketchSpace();
+    snprintf(body, sizeof(body),
+             "{\"supported\":true,\"phase\":\"%s\",\"progress\":%d,"
+             "\"free_ota_space\":%u,"
+             "\"maintenance\":%s,\"reboot_pending\":%s,\"last_error\":\"%s\"}",
+             phase_str,
+             otaManager_progressPct(),
+             (unsigned)free_ota,
+             otaManager_maintenanceActive() ? "true" : "false",
+             otaManager_rebootPending()     ? "true" : "false",
+             escaped_err.c_str());
+    server.send(200, "application/json", body);
+}
+
+// --------------------------------------------------------
+// POST /api/ota/abort
+// --------------------------------------------------------
+static void handleApiOtaAbort(WebServer& server) {
+    if (!csrfOk(server)) { rejectCsrf(server); return; }
+    bool accepted = otaManager_abort();
+    if (accepted) {
+        server.send(200, "application/json", "{\"ok\":true,\"message\":\"OTA aborted\"}");
+    } else {
+        server.send(409, "application/json",
+                    "{\"ok\":false,\"error\":\"no update in progress or not safe to abort\"}");
+    }
+}
+
+// --------------------------------------------------------
+// POST /api/ota/upload  (multipart firmware upload)
+// --------------------------------------------------------
+static void handleApiOtaUploadFinal(WebServer& server) {
+    otaManager_handleUploadFinal(server);
+}
+static void handleApiOtaUploadChunk(WebServer& server) {
+    otaManager_handleUploadChunk(server);
+}
+
+// --------------------------------------------------------
 // Route registration
 // --------------------------------------------------------
 void httpControl_registerRoutes(WebServer& server) {
@@ -816,6 +878,14 @@ void httpControl_registerRoutes(WebServer& server) {
     server.on("/api/action/time-sync",     HTTP_POST, [&server]() { handleApiTimeSync(server);     });
     server.on("/api/action/reboot",        HTTP_POST, [&server]() { handleApiReboot(server);       });
     server.on("/api/action/reset-peak-hold", HTTP_POST, [&server]() { handleApiResetPeakHold(server); });
+
+    // OTA routes
+    server.on("/api/ota/status", HTTP_GET,  [&server]() { handleApiOtaStatus(server); });
+    server.on("/api/ota/abort",  HTTP_POST, [&server]() { handleApiOtaAbort(server);  });
+    // Multipart upload overload: server.on(path, method, finalHandler, uploadHandler)
+    server.on("/api/ota/upload", HTTP_POST,
+              [&server]() { handleApiOtaUploadFinal(server); },
+              [&server]() { handleApiOtaUploadChunk(server); });
 
     // Suppress harmless browser noise (favicon, etc.) with a silent 404/204.
     server.onNotFound([&server]() {

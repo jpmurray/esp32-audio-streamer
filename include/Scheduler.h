@@ -36,6 +36,15 @@ void scheduler_deepSleepUntil(time_t target);
 time_t scheduler_nextCivilDawnAfter(time_t now);
 
 // ------------------------------------------------------------
+// Maintenance inhibit (OTA / update protection)
+// ------------------------------------------------------------
+// Set or clear the maintenance inhibit flag.  While active, both
+// scheduler_trySleepIfNight() and scheduler_deepSleepUntil() are no-ops.
+// Only OtaManager should call this.
+void scheduler_setMaintenanceInhibit(bool active);
+bool scheduler_maintenanceInhibit();
+
+// ------------------------------------------------------------
 // Preferences helpers (rolling wake / sleep lists)
 // ------------------------------------------------------------
 void scheduler_pushCsvEpochRolling(const char* key, time_t value);

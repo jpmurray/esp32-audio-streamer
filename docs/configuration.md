@@ -111,6 +111,58 @@ These are stored in NVS and survive reboot:
 
 If the Audio page shows different active/configured values, click **Restart Audio**.
 
+## OTA firmware updates
+
+### Partition table
+
+The project ships `partitions/ota_4mb.csv`, a dual-slot OTA-capable layout for 4 MB flash boards (e.g. `wemos_d1_mini32`). It is wired into `platformio.ini` via `board_build.partitions`.
+
+| Partition | Size | Purpose |
+|---|---:|---|
+| `nvs` | 20 KB | Non-volatile settings |
+| `otadata` | 8 KB | Active-slot bookkeeping; initialized by PlatformIO at `0xe000` |
+| `app0` | 1536 KB | Primary application slot; serial upload target at `0x10000` |
+| `app1` | 1536 KB | Secondary application slot |
+| `spiffs` | 960 KB | Data partition |
+
+Slots were sized at 1536 KB (~1.7× the measured firmware size of ~886 KB) to leave room for growth.
+
+### One-time serial migration
+
+Devices shipped or flashed before the OTA partition table was introduced carry the default single-app layout. They must be serial-flashed **once** with the new partition table before browser OTA can work:
+
+```bash
+pio run -t upload
+```
+
+After that one-time flash, all subsequent firmware updates can be pushed over the browser.
+
+### Upload artifact path
+
+PlatformIO writes the binary to:
+
+```
+.pio/build/wemos_d1_mini32/firmware.bin
+```
+
+Upload this file through the **System** page in the web UI, or with `curl`:
+
+```bash
+curl -X POST \
+  -H 'X-ESP32MIC-CSRF: 1' \
+  -F 'firmware=@.pio/build/wemos_d1_mini32/firmware.bin' \
+  http://<device-ip>/api/ota/upload
+```
+
+### Hardware validation flow
+
+After the one-time serial flash:
+
+1. **Happy path** — open the System page, select `firmware.bin`, click Upload. The progress bar fills, the device reboots, and the new build boots from the inactive slot.
+2. **Interrupted upload** — if the browser tab is closed or power is lost mid-upload, the previous firmware remains active. The `Update.h` commit only swaps the boot slot at `Update.end()`, so a partial write leaves the running slot untouched.
+3. **Night-mode / deep sleep** — OTA sets a maintenance inhibit flag on the scheduler before any flash write begins. Both the normal loop sleep path (`scheduler_trySleepIfNight`) and the early post-NTP sleep path respect this flag and skip sleep until the upload completes or fails.
+4. **Active stream** — on upload start, `streamServer_requestStopAndWait()` is called with a 3 s timeout. If the stream does not drain, the upload is aborted before any flash write occurs and the previous firmware continues running.
+
 ## Limits and notes
 
 - `STREAM_WAV_ENABLE` only controls `/stream`; `/stream.wav` and `/stream.pcm` always exist.
