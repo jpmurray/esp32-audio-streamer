@@ -7,6 +7,16 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - OTA updates available from the system page.
+- Optional compile-time UDP/syslog remote logging (`ENABLE_REMOTE_LOG`, `REMOTE_LOG_HOST`, `REMOTE_LOG_PORT`, `REMOTE_LOG_DEVICE`, `REMOTE_LOG_MIN_LEVEL`). Best-effort, no retries, silently dropped when Wi-Fi is unavailable. `REMOTE_LOG_HOST` must be an IPv4 literal.
+- Periodic health logging (`HEALTH_LOG_INTERVAL_MS`, default 60 s): compact uptime/heap/Wi-Fi/stream/audio-drop snapshot logged at info level. Set to `0` to disable.
+- Boot/reset diagnostics logged immediately after `logbuf_init()`: reset reason (CPU0/CPU1), chip model, flash size, heap, OTA slot free space, and compile-time log configuration.
+- Ring-buffer drop warnings are now rate-limited (`RB_DROP_LOG_INTERVAL_MS`, default 30 s) to avoid flooding the log during sustained audio backpressure.
+
+### Changed
+
+- All module logging (`AudioPipeline`, `RuntimeSettings`, `Scheduler`, `StreamServer`, `NetworkManager`, `HttpControl`, `OtaManager`, `main`) is now routed through a centralized `LogBuffer` sink. Logs that previously only appeared on Serial now also appear in the in-memory RAM ring and in the optional remote UDP sink.
+- Log lines are prefixed with severity and module tag (e.g. `[I][AP] I2S init ok`).
+
 
 ## 2.0.0
 

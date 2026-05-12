@@ -8,36 +8,10 @@
 #include <WiFi.h>
 #include <time.h>
 #include <math.h>
+#include "LogBuffer.h"  // centralized LOGE/LOGW/LOGI/LOGD(module, fmt, ...)
 
 #ifndef PI
 #define PI 3.14159265358979323846
-#endif
-
-// ------------------------------------------------------------
-// Logging
-// ------------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-
-#if LOG_LEVEL >= 3
-#define LOGD(fmt, ...) Serial.printf("[D] " fmt, ##__VA_ARGS__)
-#else
-#define LOGD(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) Serial.printf("[I] " fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) Serial.printf("[W] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(...) do {} while (0)
-#define LOGW(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) Serial.printf("[E] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(...) do {} while (0)
 #endif
 
 // ------------------------------------------------------------
@@ -123,7 +97,7 @@ static CivilTimes computeCivilTimesUTC_forDay(int y, int m, int d,
     char dawn_iso[24], dusk_iso[24];
     scheduler_formatIso8601UTC(out.dawn, dawn_iso, sizeof(dawn_iso));
     scheduler_formatIso8601UTC(out.dusk, dusk_iso, sizeof(dusk_iso));
-    Serial.printf("[D] Civil times UTC for %04d-%02d-%02d lat=%.5f lon=%.5f -> dawn=%s dusk=%s\n",
+    LOGD("SCHED", "Civil times UTC for %04d-%02d-%02d lat=%.5f lon=%.5f -> dawn=%s dusk=%s\n",
                   y, m, d, (float)lat_deg, (float)lon_deg, dawn_iso, dusk_iso);
 #endif
     return out;
@@ -207,13 +181,13 @@ void scheduler_maybeSyncNtp() {
     time_t now = time(nullptr);
     if (!scheduler_timeIsValid() || (now - g_last_ntp_sync_utc) > 86400) {
         g_last_ntp_check_utc = now;
-        LOGI("[NTP] Sync starting...\n");
+        LOGI("SCHED", "[NTP] Sync starting...\n");
         configTzTime(LOCAL_TZ, "pool.ntp.org", "time.nist.gov");
         if (waitForNtp(15000)) {
             g_last_ntp_sync_utc = time(nullptr);
-            LOGI("[NTP] Sync ok: %ld\n", (long)g_last_ntp_sync_utc);
+            LOGI("SCHED", "[NTP] Sync ok: %ld\n", (long)g_last_ntp_sync_utc);
         } else {
-            LOGW("[NTP] Sync failed, will retry later\n");
+            LOGW("SCHED", "[NTP] Sync failed, will retry later\n");
         }
     }
 }
@@ -226,7 +200,7 @@ void scheduler_ensureSchedule(time_t now) {
                              &g_tomorrow_dawn_utc, &g_tomorrow_dusk_utc);
         g_last_compute_ymd = ymd;
         scheduler_refreshNextSleeps(g_today_dusk_utc, g_tomorrow_dusk_utc);
-        LOGI("[SCHED] Recomputed dawn/dusk. today: %ld/%ld, tomorrow: %ld/%ld\n",
+        LOGI("SCHED", "[SCHED] Recomputed dawn/dusk. today: %ld/%ld, tomorrow: %ld/%ld\n",
              (long)g_today_dawn_utc, (long)g_today_dusk_utc,
              (long)g_tomorrow_dawn_utc, (long)g_tomorrow_dusk_utc);
 #if LOG_LEVEL >= 3
@@ -236,7 +210,7 @@ void scheduler_ensureSchedule(time_t now) {
         scheduler_formatIso8601UTC(g_today_dusk_utc,     ts_iso,  sizeof(ts_iso));
         scheduler_formatIso8601UTC(g_tomorrow_dawn_utc,  nd_iso,  sizeof(nd_iso));
         scheduler_formatIso8601UTC(g_tomorrow_dusk_utc,  ns_iso,  sizeof(ns_iso));
-        Serial.printf("[D] now=%s lat=%.6f lon=%.6f today.dawn=%s today.dusk=%s tomorrow.dawn=%s tomorrow.dusk=%s\n",
+        LOGD("SCHED", "now=%s lat=%.6f lon=%.6f today.dawn=%s today.dusk=%s tomorrow.dawn=%s tomorrow.dusk=%s\n",
                       now_iso, (float)kLat, (float)kLon, td_iso, ts_iso, nd_iso, ns_iso);
 #endif
     }
@@ -257,9 +231,9 @@ time_t scheduler_nextCivilDawnAfter(time_t now) {
 void scheduler_setMaintenanceInhibit(bool active) {
     s_maintenance_inhibit = active;
     if (active) {
-        LOGI("[SLEEP] Maintenance inhibit set; deep sleep blocked\n");
+        LOGI("SCHED", "[SLEEP] Maintenance inhibit set; deep sleep blocked\n");
     } else {
-        LOGI("[SLEEP] Maintenance inhibit cleared\n");
+        LOGI("SCHED", "[SLEEP] Maintenance inhibit cleared\n");
     }
 }
 
@@ -270,14 +244,14 @@ bool scheduler_maintenanceInhibit() {
 void scheduler_deepSleepUntil(time_t target) {
     if (target <= 0) return;
     if (s_maintenance_inhibit) {
-        LOGI("[SLEEP] Deep sleep suppressed: maintenance inhibit active\n");
+    LOGI("SCHED", "[SLEEP] Deep sleep suppressed: maintenance inhibit active\n");
         return;
     }
     time_t now = time(nullptr);
     int64_t sec = (int64_t)target - (int64_t)now;
     if (sec < 5) sec = 5;
 #if !defined(ENABLE_DEEP_SLEEP) || ENABLE_DEEP_SLEEP
-    LOGI("[SLEEP] Deep sleeping for %lld sec until %ld\n", (long long)sec, (long)target);
+    LOGI("SCHED", "[SLEEP] Deep sleeping for %lld sec until %ld\n", (long long)sec, (long)target);
     esp_sleep_enable_timer_wakeup((uint64_t)sec * 1000000ULL);
     Serial.flush(); delay(50);
     gracefulShutdown();
@@ -286,7 +260,7 @@ void scheduler_deepSleepUntil(time_t target) {
 #else
     static time_t s_last_logged_target = 0;
     if (target != s_last_logged_target) {
-        LOGI("[SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept %lld sec. Continuing.\n", (long long)sec);
+        LOGI("SCHED", "[SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept %lld sec. Continuing.\n", (long long)sec);
         s_last_logged_target = target;
     }
 #endif

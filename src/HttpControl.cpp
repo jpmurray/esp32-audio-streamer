@@ -17,23 +17,8 @@
 #include "freertos/task.h"
 
 // --------------------------------------------------------
-// Logging
+// Logging: use centralized macros from LogBuffer.h.
 // --------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) logbuf_printf("[I][HC] " fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) logbuf_printf("[W][HC] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(...) do {} while (0)
-#define LOGW(...) do {} while (0)
-#endif
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) logbuf_printf("[E][HC] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(...) do {} while (0)
-#endif
 
 // --------------------------------------------------------
 // Compile-time defaults exposed as read-only in status
@@ -752,22 +737,22 @@ static void handleApiResetPeakHold(WebServer& server) {
 // --------------------------------------------------------
 static void handleApiRestartAudio(WebServer& server) {
     if (!csrfOk(server)) { rejectCsrf(server); return; }
-    LOGI("restart-audio requested\n");
+    LOGI("HC", "restart-audio requested\n");
     server.send(200, "application/json", "{\"ok\":true,\"action\":\"restart-audio\"}");
     // Signal the stream loop to exit cleanly before tearing down the pipeline.
     // This prevents a race where audioPipeline_stop() destroys the ring buffer
     // while the stream task is still reading from it.
     if (g_stream_active) {
-        LOGI("restart-audio: waiting for stream session to drain\n");
+        LOGI("HC", "restart-audio: waiting for stream session to drain\n");
         if (!streamServer_requestStopAndWait(2000)) {
-            LOGW("restart-audio: stream session did not drain in time, proceeding\n");
+            LOGW("HC", "restart-audio: stream session did not drain in time, proceeding\n");
         }
     }
     delay(50);
     audioPipeline_stop();
     delay(100);
     if (!audioPipeline_init()) {
-        LOGE("restart-audio: audioPipeline_init() failed\n");
+        LOGE("HC", "restart-audio: audioPipeline_init() failed\n");
     }
 }
 
@@ -780,7 +765,7 @@ static void handleApiTimeSync(WebServer& server) {
         sendJsonError(server, 409, "STA Wi-Fi is not connected");
         return;
     }
-    LOGI("time-sync requested\n");
+    LOGI("HC", "time-sync requested\n");
     scheduler_maybeSyncNtp();
     time_t now = time(nullptr);
     char now_iso[24]; scheduler_formatIso8601UTC(now, now_iso, sizeof(now_iso));
@@ -794,7 +779,7 @@ static void handleApiTimeSync(WebServer& server) {
 // --------------------------------------------------------
 static void handleApiReboot(WebServer& server) {
     if (!csrfOk(server)) { rejectCsrf(server); return; }
-    LOGI("reboot requested\n");
+    LOGI("HC", "reboot requested\n");
     server.send(200, "application/json", "{\"ok\":true,\"action\":\"reboot\"}");
     delay(200);
     ESP.restart();
@@ -903,5 +888,5 @@ void httpControl_registerRoutes(WebServer& server) {
                     String("{\"error\":\"not found\",\"path\":\"") + jsonEscape(path.c_str()) + "\"}");
     });
 
-    LOGI("Registered /api/* routes\n");
+    LOGI("HC", "Registered /api/* routes\n");
 }

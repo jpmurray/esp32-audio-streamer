@@ -8,6 +8,7 @@
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "esp_wifi.h"
+#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/ringbuf.h"
@@ -23,40 +24,19 @@
 #include "WebUI_gz.h"
 #include "OtaManager.h"
 
-// ------------------------------------------------------------
-// Logging (compile-time): -D LOG_LEVEL=1/2/3
-// 1 = errors only, 2 = info+warn+error (default), 3 = verbose/debug
-// ------------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-
-#if LOG_LEVEL >= 3
-#define LOGD(fmt, ...) logbuf_printf("[D] " fmt, ##__VA_ARGS__)
-#else
-#define LOGD(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) logbuf_printf("[I] " fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) logbuf_printf("[W] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(...) do {} while (0)
-#define LOGW(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) logbuf_printf("[E] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(...) do {} while (0)
-#endif
-
+// Logging: use centralized macros from LogBuffer.h.
+// LOGE/LOGW/LOGI/LOGD(module, fmt, ...) are defined there.
 #if LOG_LEVEL >= 3
 #define LOG_DOT() Serial.print('.')
 #define LOG_NL()  Serial.println()
 #else
 #define LOG_DOT() do {} while (0)
 #define LOG_NL()  do {} while (0)
+#endif
+
+// Periodic health logging interval (ms). Set to 0 to disable.
+#ifndef HEALTH_LOG_INTERVAL_MS
+#define HEALTH_LOG_INTERVAL_MS 60000
 #endif
 
 // ------------------------------------------------------------
@@ -101,6 +81,97 @@
 // ------------------------------------------------------------
 static WebServer server(SERVER_PORT);
 
+// ------------------------------------------------------------
+// Boot diagnostics
+// ------------------------------------------------------------
+static const char* resetReasonName(esp_reset_reason_t r) {
+    switch (r) {
+        case ESP_RST_POWERON:  return "POWERON";
+        case ESP_RST_EXT:      return "EXT";
+        case ESP_RST_SW:       return "SW";
+        case ESP_RST_PANIC:    return "PANIC";
+        case ESP_RST_INT_WDT:  return "INT_WDT";
+        case ESP_RST_TASK_WDT: return "TASK_WDT";
+        case ESP_RST_WDT:      return "WDT";
+        case ESP_RST_DEEPSLEEP:return "DEEPSLEEP";
+        case ESP_RST_BROWNOUT: return "BROWNOUT";
+        case ESP_RST_SDIO:     return "SDIO";
+        default:               return "UNKNOWN";
+    }
+}
+
+static void logBootDiagnostics() {
+    // Reset reasons
+    esp_reset_reason_t reason = esp_reset_reason();
+    LOGI("MAIN", "Reset: cpu0=%s\n", resetReasonName(reason));
+
+    // Chip info
+    esp_chip_info_t chip;
+    esp_chip_info(&chip);
+    LOGI("MAIN", "Chip: model=%d rev=%d cores=%d flash=%lu B\n",
+         (int)chip.model, (int)chip.revision, (int)chip.cores,
+         (unsigned long)ESP.getFlashChipSize());
+
+    // Build config summary
+    LOGI("MAIN", "Build: LOG_LEVEL=%d remote_log=%s health_ms=%d\n",
+         (int)LOG_LEVEL,
+#if ENABLE_REMOTE_LOG
+         "on",
+#else
+         "off",
+#endif
+         (int)HEALTH_LOG_INTERVAL_MS);
+
+    // Initial heap
+    LOGI("MAIN", "Heap: free=%lu min=%lu total=%lu\n",
+         (unsigned long)ESP.getFreeHeap(),
+         (unsigned long)ESP.getMinFreeHeap(),
+         (unsigned long)ESP.getHeapSize());
+
+    // OTA sketch space
+    LOGI("MAIN", "OTA: sketch_free=%lu B\n",
+         (unsigned long)ESP.getFreeSketchSpace());
+}
+
+// ------------------------------------------------------------
+// Periodic health snapshot
+// ------------------------------------------------------------
+static void logHealthSnapshot() {
+    // Uptime
+    uint32_t uptime_s = millis() / 1000UL;
+
+    // Heap
+    uint32_t heap_free = (uint32_t)ESP.getFreeHeap();
+    uint32_t heap_min  = (uint32_t)ESP.getMinFreeHeap();
+
+    // Network state
+    const char* net_state;
+    int rssi = 0;
+    if (networkManager_staConnected()) {
+        net_state = "sta";
+        rssi = WiFi.RSSI();
+    } else if (networkManager_setupApActive()) {
+        net_state = "ap";
+    } else {
+        net_state = "none";
+    }
+
+    // Stream state
+    const char* stream_state = streamServer_transportName(g_stream_active_transport);
+
+    // Audio metrics
+    AudioMetrics am = audioPipeline_getMetrics();
+
+    // Log a single compact line
+    LOGI("MAIN", "Health: up=%lus heap=%lu/%lu net=%s rssi=%d stream=%s drops=%lu i2serr=%lu\n",
+         (unsigned long)uptime_s,
+         (unsigned long)heap_free, (unsigned long)heap_min,
+         net_state, rssi,
+         stream_state,
+         (unsigned long)am.rb_drop_count,
+         (unsigned long)am.i2s_error_count);
+}
+
 static void disableBrownout() {
 #ifdef RTC_CNTL_BROWN_OUT_REG
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
@@ -125,22 +196,22 @@ static void startNormalServicesOnce() {
         } else {
             time_t nd = scheduler_nextCivilDawnAfter(now);
             if (nd > now) {
-                LOGI("[MODE] Night after NTP; scheduling deep sleep until next dawn (%ld)\n", (long)nd);
+                LOGI("MAIN", "[MODE] Night after NTP; scheduling deep sleep until next dawn (%ld)\n", (long)nd);
 #if !defined(ENABLE_DEEP_SLEEP) || ENABLE_DEEP_SLEEP
                 scheduler_deepSleepUntil(nd);
 #else
-                LOGI("[MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.\n");
+                LOGI("MAIN", "[MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.\n");
 #endif
             } else {
-                LOGW("[MODE] Night after NTP but could not find future dawn; staying awake\n");
+                LOGW("MAIN", "[MODE] Night after NTP but could not find future dawn; staying awake\n");
             }
         }
     } else {
-        LOGW("[NTP] Time invalid after STA connect; will retry in loop (no sleep decisions yet)\n");
+        LOGW("MAIN", "[NTP] Time invalid after STA connect; will retry in loop (no sleep decisions yet)\n");
     }
 
     if (!audioPipeline_init()) {
-        LOGE("[I2S] init failed; /stream will 503\n");
+        LOGE("MAIN", "[I2S] init failed; /stream will 503\n");
     } else {
         audioPipeline_setHpfConfig(g_runtime_settings.hpf_enabled,
                                    (int)g_runtime_settings.hpf_cutoff_hz);
@@ -148,7 +219,7 @@ static void startNormalServicesOnce() {
 
     streamServer_init();
     s_normal_services_started = true;
-    LOGI("Normal services started; audio stream available on :%d/stream\n", (int)STREAM_PORT);
+    LOGI("MAIN", "Normal services started; audio stream available on :%d/stream\n", (int)STREAM_PORT);
 }
 
 // ------------------------------------------------------------
@@ -443,17 +514,18 @@ void setup() {
     delay(200);
     LOG_NL();
     logbuf_init();
-    LOGI("Booting ESP32 Audio Streamer\n");
+    LOGI("MAIN", "Booting ESP32 Audio Streamer\n");
+    logBootDiagnostics();
 
     appState_init();
     runtimeSettings_load();
     setenv("TZ", LOCAL_TZ, 1); tzset();
 
 #if ENABLE_BROWNOUT_DISABLE
-    LOGI("[PMIC] Brownout detector disabled (workaround enabled)\n");
+    LOGI("MAIN", "[PMIC] Brownout detector disabled (workaround enabled)\n");
     disableBrownout();
 #else
-    LOGI("[PMIC] Brownout workaround disabled (leaving detector enabled)\n");
+    LOGI("MAIN", "[PMIC] Brownout workaround disabled (leaving detector enabled)\n");
 #endif
 
     runtimeSettings_applyWifiTxPower();
@@ -470,7 +542,7 @@ void setup() {
     server.on("/status", HTTP_GET, handleStatus);
     httpControl_registerRoutes(server);
     server.begin();
-    LOGI("HTTP control server started on :%d\n", (int)SERVER_PORT);
+    LOGI("MAIN", "HTTP control server started on :%d\n", (int)SERVER_PORT);
 
     otaManager_init();
 
@@ -479,11 +551,16 @@ void setup() {
     } else if (networkManager_setupApActive()) {
         char ip[16];
         networkManager_primaryIpString(ip, sizeof(ip));
-        LOGI("Setup/control UI available at http://%s/\n", ip[0] ? ip : "192.168.4.1");
+        LOGI("MAIN", "Setup/control UI available at http://%s/\n", ip[0] ? ip : "192.168.4.1");
     } else {
-        LOGE("No STA connection and setup AP is not active; control UI may be unreachable\n");
+        LOGE("MAIN", "No STA connection and setup AP is not active; control UI may be unreachable\n");
     }
 }
+
+// Health log state (module-level)
+#if HEALTH_LOG_INTERVAL_MS > 0
+static uint32_t s_next_health_log_ms = 0;
+#endif
 
 void loop() {
     server.handleClient();
@@ -506,6 +583,16 @@ void loop() {
         scheduler_ensureSchedule(nowt);
         scheduler_trySleepIfNight(nowt);
     }
+
+#if HEALTH_LOG_INTERVAL_MS > 0
+    if (s_normal_services_started) {
+        uint32_t _now_ms = millis();
+        if ((int32_t)(_now_ms - s_next_health_log_ms) >= 0) {
+            s_next_health_log_ms = _now_ms + (uint32_t)HEALTH_LOG_INTERVAL_MS;
+            logHealthSnapshot();
+        }
+    }
+#endif
 
     delay(2);
 }

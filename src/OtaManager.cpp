@@ -25,10 +25,6 @@
 // ----------------------------------------------------------------
 // Tunables
 // ----------------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-
 #ifndef OTA_STREAM_DRAIN_TIMEOUT_MS
 #define OTA_STREAM_DRAIN_TIMEOUT_MS 3000
 #endif
@@ -38,18 +34,8 @@
 #endif
 
 // ----------------------------------------------------------------
-// Logging helpers (match the pattern used in other modules)
+// Logging: use centralized macros from LogBuffer.h.
 // ----------------------------------------------------------------
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) logbuf_printf("[OTA][E] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(fmt, ...) do {} while(0)
-#endif
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) logbuf_printf("[OTA] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(fmt, ...) do {} while(0)
-#endif
 
 // ----------------------------------------------------------------
 // Module state
@@ -100,10 +86,10 @@ static void failUpload(const char* reason) {
     if (s_audio_stopped) {
         audioPipeline_init();
         s_audio_stopped = false;
-        LOGI("Audio pipeline restored after failure\n");
+        LOGI("OTA", "Audio pipeline restored after failure\n");
     }
     s_phase = OtaPhase::failed;
-    LOGE("Upload failed: %s\n", reason);
+    LOGE("OTA", "Upload failed: %s\n", reason);
 }
 
 // Check CSRF header on the server request.
@@ -117,13 +103,13 @@ static bool csrfOk(WebServer& server) {
 // ----------------------------------------------------------------
 void otaManager_init() {
     resetState();
-    LOGI("OtaManager initialised\n");
+    LOGI("OTA", "OtaManager initialised\n");
 }
 
 void otaManager_loop() {
     if (s_phase == OtaPhase::success_reboot_pending && s_reboot_at_ms > 0) {
         if (millis() >= s_reboot_at_ms) {
-            LOGI("Rebooting into new firmware\n");
+            LOGI("OTA", "Rebooting into new firmware\n");
             Serial.flush();
             delay(100);
             ESP.restart();
@@ -146,7 +132,7 @@ bool otaManager_rebootPending() {
 
 bool otaManager_abort() {
     if (s_phase != OtaPhase::receiving) return false;
-    LOGI("Abort requested via API\n");
+    LOGI("OTA", "Abort requested via API\n");
     failUpload("aborted by request");
     return true;
 }
@@ -191,7 +177,7 @@ void otaManager_handleUploadChunk(WebServer& server) {
         resetState();
         s_phase = OtaPhase::receiving;
         scheduler_setMaintenanceInhibit(true);
-        LOGI("Upload started: %s\n", upload.filename.c_str());
+        LOGI("OTA", "Upload started: %s\n", upload.filename.c_str());
 
         // Stop active streams before touching flash.
         bool streams_ok = streamServer_requestStopAndWait(OTA_STREAM_DRAIN_TIMEOUT_MS);
@@ -204,7 +190,7 @@ void otaManager_handleUploadChunk(WebServer& server) {
         // Set s_audio_stopped before calling stop so failUpload() knows to restore.
         audioPipeline_stop();
         s_audio_stopped = true;
-        LOGI("Audio pipeline stopped for OTA\n");
+        LOGI("OTA", "Audio pipeline stopped for OTA\n");
 
         // Determine firmware size for preflight and progress reporting.
         // Preference order:
@@ -248,7 +234,7 @@ void otaManager_handleUploadChunk(WebServer& server) {
         s_update_started = true;
         s_written        = 0;
         s_progress_pct   = 0;
-        LOGI("Update.begin() ok; free slot %u bytes\n", (unsigned)free_slot);
+        LOGI("OTA", "Update.begin() ok; free slot %u bytes\n", (unsigned)free_slot);
     }
 
     if (upload.status == UPLOAD_FILE_WRITE) {
@@ -284,7 +270,7 @@ void otaManager_handleUploadChunk(WebServer& server) {
         s_phase          = OtaPhase::success_reboot_pending;
         s_reboot_at_ms   = millis() + OTA_REBOOT_DELAY_MS;
         // Maintenance inhibit intentionally kept active until reboot.
-        LOGI("Update complete (%u bytes); rebooting in %d ms\n",
+        LOGI("OTA", "Update complete (%u bytes); rebooting in %d ms\n",
              (unsigned)s_written, OTA_REBOOT_DELAY_MS);
     }
 }

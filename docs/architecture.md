@@ -25,8 +25,22 @@ Web UI / API :80
 | `NetworkManager` | Wi-Fi credentials, setup AP, reconnect behavior |
 | `RuntimeSettings` | NVS-backed runtime settings |
 | `Scheduler` | NTP, civil dawn/dusk, sleep timing |
-| `LogBuffer` | In-memory logs exposed through API/UI |
+| `LogBuffer` | Centralized logging: Serial output, in-memory RAM ring (exposed via `/api/logs`), optional remote UDP/syslog sink |
 | `AppState` | Shared application state and persisted counters |
+
+## Logging flow
+
+All module logging is routed through centralized macros in `LogBuffer.h`. Each call goes through a single sink:
+
+```text
+LOG* macro (LOGE/LOGW/LOGI/LOGD)
+  -> LogBuffer
+      -> Serial (always)
+      -> RAM ring buffer (always; exposed via /api/logs)
+      -> optional UDP/syslog (if ENABLE_REMOTE_LOG=1 and Wi-Fi connected)
+```
+
+Compile-time `LOG_LEVEL` controls which severity levels are compiled in. `REMOTE_LOG_MIN_LEVEL` adds a second threshold for the remote sink only, applied after compile-time filtering. The `/api/logs` endpoint always reflects the RAM ring regardless of remote logging configuration.
 
 ## Audio pipeline
 

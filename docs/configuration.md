@@ -82,6 +82,68 @@ Examples:
 | `ENABLE_BROWNOUT_DISABLE` | 1 | Disable ESP32 brownout detector |
 | `LOG_LEVEL` | 2 | `1` errors, `2` info/warn/error, `3` debug |
 
+### Logging
+
+`LOG_LEVEL` is compile-time only. It controls which severity levels are compiled into the firmware:
+
+| Value | Levels compiled in |
+|---:|---|
+| `1` | errors |
+| `2` | errors, warnings, info (default) |
+| `3` | errors, warnings, info, debug |
+
+#### Remote UDP/syslog logging
+
+Optional. All flags are compile-time only. When enabled, logs are forwarded as best-effort RFC3164-style UDP datagrams in addition to Serial and the RAM ring. The remote sink has no effect on `/api/logs` or the web UI.
+
+| Flag | Default | Description |
+|---|---:|---|
+| `ENABLE_REMOTE_LOG` | `0` | Set to `1` to enable the remote sink |
+| `REMOTE_LOG_HOST` | `""` | **IPv4 literal** of the syslog/UDP receiver; DNS is never used |
+| `REMOTE_LOG_PORT` | `514` | UDP port |
+| `REMOTE_LOG_DEVICE` | `"esp32-audio-streamer"` | Device name included in each syslog message |
+| `REMOTE_LOG_MIN_LEVEL` | `1` | Remote-only threshold (see table below) |
+
+`REMOTE_LOG_MIN_LEVEL` controls which already-compiled log levels are forwarded remotely:
+
+| Value | Remote output |
+|---:|---|
+| `1` | errors only |
+| `2` | errors, warnings |
+| `3` | errors, warnings, info |
+| `4` | errors, warnings, info, debug |
+
+Limitations:
+
+- `REMOTE_LOG_HOST` must be an IPv4 literal (e.g. `"192.168.1.10"`). DNS resolution is never attempted to avoid blocking the log path.
+- UDP datagrams are best-effort: dropped silently when Wi-Fi is unavailable. No retries, no acknowledgement.
+- The remote sink never calls `LOG*` macros internally to prevent recursion.
+
+Example `local_env.ini` fragment:
+
+```ini
+-D ENABLE_REMOTE_LOG=1
+'-D REMOTE_LOG_HOST="192.168.1.10"'
+-D REMOTE_LOG_PORT=514
+-D REMOTE_LOG_MIN_LEVEL=2
+```
+
+#### Periodic health logging
+
+A compact health snapshot is logged at a configurable interval (uptime, heap, Wi-Fi/RSSI, stream transport, audio ring-buffer drop count, I2S errors).
+
+| Flag | Default | Description |
+|---|---:|---|
+| `HEALTH_LOG_INTERVAL_MS` | `60000` | Interval in ms; set to `0` to disable |
+
+Health logs appear in Serial, the RAM ring, and the remote sink (subject to `REMOTE_LOG_MIN_LEVEL`). They are info-level and compact.
+
+#### Ring-buffer drop rate limiting
+
+| Flag | Default | Description |
+|---|---:|---|
+| `RB_DROP_LOG_INTERVAL_MS` | `30000` | Minimum ms between ring-buffer drop warnings; set to `0` to log every drop |
+
 ## Deep sleep behavior
 
 When deep sleep is enabled, the firmware:
@@ -167,6 +229,8 @@ After the one-time serial flash:
 
 - `STREAM_WAV_ENABLE` only controls `/stream`; `/stream.wav` and `/stream.pcm` always exist.
 - `RTSP_PORT=0` disables RTSP at build time.
-- `LOG_LEVEL` is compile-time only.
+- `LOG_LEVEL` and all remote logging flags are compile-time only; they cannot be changed at runtime.
+- `REMOTE_LOG_HOST` must be an IPv4 literal; DNS is never used.
+- Remote logging is best-effort UDP only — no retries, no delivery guarantee.
 - Setup AP is not a full captive portal; open `http://192.168.4.1/` manually.
 - Only one I2S channel is captured.
