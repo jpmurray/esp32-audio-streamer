@@ -439,7 +439,13 @@ static void handleApiLogs(WebServer& server) {
     }
     n += arr_n;
     n += snprintf(buf + n, BUF_SZ - n, "}");
-    server.send(200, "application/json", buf);
+
+    // Do not pass this large heap buffer to server.send(..., const char*):
+    // Arduino WebServer casts const char* bodies to String internally and can
+    // fail for long arrays, leaving the HTTP client/socket in a bad state.
+    server.setContentLength((size_t)n);
+    server.send(200, "application/json", "");
+    server.sendContent(buf, (size_t)n);
     free(buf);
 }
 

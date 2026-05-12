@@ -41,6 +41,7 @@ static WiFiUDP   s_remote_udp;
 static IPAddress s_remote_ip;
 static bool      s_remote_config_ok = false;
 static bool      s_remote_sending   = false;
+static uint8_t   s_remote_failures  = 0;
 #endif
 
 // --------------------------------------------------------
@@ -89,9 +90,22 @@ static void remoteLog(LogSeverity sev, const char* module, const char* msg) {
              module ? module : "-",
              msg);
 
-    s_remote_udp.beginPacket(s_remote_ip, REMOTE_LOG_PORT);
-    s_remote_udp.write((const uint8_t*)payload, strlen(payload));
-    s_remote_udp.endPacket();
+    bool ok = false;
+    if (s_remote_udp.beginPacket(s_remote_ip, REMOTE_LOG_PORT) == 1) {
+        size_t len = strlen(payload);
+        size_t wrote = s_remote_udp.write((const uint8_t*)payload, len);
+        ok = (wrote == len) && (s_remote_udp.endPacket() == 1);
+    }
+
+    if (ok) {
+        s_remote_failures = 0;
+    } else if (++s_remote_failures >= 3) {
+        // Avoid repeatedly exercising the UDP path when the configured remote
+        // sink is unreachable after Wi-Fi/OTA reboot.  This is intentionally
+        // silent: the remote sink is documented as best-effort and must never
+        // destabilize local HTTP/control behavior.
+        s_remote_config_ok = false;
+    }
 
     s_remote_sending = false;
 }
@@ -106,6 +120,8 @@ void logbuf_init() {
     if (!s_mutex) s_mutex = xSemaphoreCreateMutex();
 
 #if ENABLE_REMOTE_LOG
+    s_remote_failures = 0;
+    s_remote_config_ok = false;
     // Parse IPv4 literal once at init. Disable silently on failure.
     const char* host = REMOTE_LOG_HOST;
     if (host && host[0] != '\0') {
