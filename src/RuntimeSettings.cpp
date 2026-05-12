@@ -9,25 +9,7 @@
 #include <WiFi.h>
 #include <math.h>
 #include "esp_wifi.h"
-
-// --------------------------------------------------------
-// Logging
-// --------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) Serial.printf("[I][RT] " fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) Serial.printf("[W][RT] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(...) do {} while (0)
-#define LOGW(...) do {} while (0)
-#endif
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) Serial.printf("[E][RT] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(...) do {} while (0)
-#endif
+#include "LogBuffer.h"  // centralized LOGE/LOGW/LOGI/LOGD(module, fmt, ...)
 
 // --------------------------------------------------------
 // Compile-time defaults (mirrors AudioPipeline / main defaults)
@@ -90,7 +72,7 @@ bool runtimeSettings_validateAudioProfile(int v) {
 // --------------------------------------------------------
 void runtimeSettings_load() {
     if (!g_prefs_inited) {
-        LOGW("Preferences not inited; using compile-time defaults\n");
+        LOGW("RT", "Preferences not inited; using compile-time defaults\n");
         return;
     }
 
@@ -102,7 +84,7 @@ void runtimeSettings_load() {
         if (runtimeSettings_validateWifiTxPower(v)) {
             g_runtime_settings.wifi_tx_power_dbm = (int8_t)v;
         } else {
-            LOGW("Stored wifi_tx_power_dbm=%d out of range; using default\n", v);
+            LOGW("RT", "Stored wifi_tx_power_dbm=%d out of range; using default\n", v);
         }
     }
 
@@ -115,7 +97,7 @@ void runtimeSettings_load() {
         if (runtimeSettings_validateHpfCutoffHz(v)) {
             g_runtime_settings.hpf_cutoff_hz = (int16_t)v;
         } else {
-            LOGW("Stored hpf_cutoff_hz=%d out of range; using default\n", v);
+            LOGW("RT", "Stored hpf_cutoff_hz=%d out of range; using default\n", v);
         }
     }
 
@@ -124,7 +106,7 @@ void runtimeSettings_load() {
         if (runtimeSettings_validateConvertShift(v)) {
             g_runtime_settings.convert_shift = (int8_t)v;
         } else {
-            LOGW("Stored convert_shift=%d out of range; using default\n", v);
+            LOGW("RT", "Stored convert_shift=%d out of range; using default\n", v);
         }
     }
 
@@ -133,12 +115,12 @@ void runtimeSettings_load() {
         if (runtimeSettings_validateAudioProfile(v)) {
             g_runtime_settings.audio_profile = (AudioProfile)v;
         } else {
-            LOGW("Stored audio_profile=%d invalid; using default (quality_48k)\n", v);
+            LOGW("RT", "Stored audio_profile=%d invalid; using default (quality_48k)\n", v);
         }
     }
 
     rt.end();
-    LOGI("Loaded: wifi_tx_dbm=%d hpf_en=%d hpf_hz=%d convert_shift=%d audio_profile=%s\n",
+    LOGI("RT", "Loaded: wifi_tx_dbm=%d hpf_en=%d hpf_hz=%d convert_shift=%d audio_profile=%s\n",
          (int)g_runtime_settings.wifi_tx_power_dbm,
          (int)g_runtime_settings.hpf_enabled,
          (int)g_runtime_settings.hpf_cutoff_hz,
@@ -148,7 +130,7 @@ void runtimeSettings_load() {
 
 void runtimeSettings_save() {
     if (!g_prefs_inited) {
-        LOGW("Preferences not inited; cannot save\n");
+        LOGW("RT", "Preferences not inited; cannot save\n");
         return;
     }
 
@@ -183,7 +165,7 @@ static wifi_power_t mapDbmToEnum(int dbm) {
 void runtimeSettings_applyWifiTxPower() {
     wifi_power_t txp = mapDbmToEnum((int)g_runtime_settings.wifi_tx_power_dbm);
     WiFi.setTxPower(txp);
-    LOGI("wifi_tx_power_dbm applied: %d (enum=%d)\n",
+    LOGI("RT", "wifi_tx_power_dbm applied: %d (enum=%d)\n",
          (int)g_runtime_settings.wifi_tx_power_dbm, (int)txp);
 }
 
@@ -199,7 +181,7 @@ bool runtimeSettings_setWifiTxPowerDbm(int v, char* errmsg, size_t errmsg_sz) {
     g_runtime_settings.wifi_tx_power_dbm = (int8_t)v;
     runtimeSettings_save();
     runtimeSettings_applyWifiTxPower();
-    LOGI("wifi_tx_power_dbm set to %d\n", v);
+    LOGI("RT", "wifi_tx_power_dbm set to %d\n", v);
     return true;
 }
 
@@ -210,7 +192,7 @@ bool runtimeSettings_setHpfEnabled(bool v, char* errmsg, size_t errmsg_sz) {
     // The AudioPipeline reads this via audioPipeline_setHpf() — declared below.
     // We call audioPipeline_applyHpfConfig() to propagate without restarting.
     audioPipeline_setHpfConfig(v, g_runtime_settings.hpf_cutoff_hz);
-    LOGI("hpf_enabled set to %d\n", (int)v);
+    LOGI("RT", "hpf_enabled set to %d\n", (int)v);
     return true;
 }
 
@@ -222,7 +204,7 @@ bool runtimeSettings_setHpfCutoffHz(int v, char* errmsg, size_t errmsg_sz) {
     g_runtime_settings.hpf_cutoff_hz = (int16_t)v;
     runtimeSettings_save();
     audioPipeline_setHpfConfig(g_runtime_settings.hpf_enabled, v);
-    LOGI("hpf_cutoff_hz set to %d\n", v);
+    LOGI("RT", "hpf_cutoff_hz set to %d\n", v);
     return true;
 }
 
@@ -234,7 +216,7 @@ bool runtimeSettings_setConvertShift(int v, char* errmsg, size_t errmsg_sz) {
     g_runtime_settings.convert_shift = (int8_t)v;
     runtimeSettings_save();
     // NOTE: does NOT hot-apply — restart-audio is required for this to take effect.
-    LOGI("convert_shift configured to %d (restart-audio required)\n", v);
+    LOGI("RT", "convert_shift configured to %d (restart-audio required)\n", v);
     return true;
 }
 
@@ -247,7 +229,7 @@ bool runtimeSettings_setAudioProfile(int v, char* errmsg, size_t errmsg_sz) {
     g_runtime_settings.audio_profile = (AudioProfile)v;
     runtimeSettings_save();
     // NOTE: does NOT hot-apply — restart-audio is required for this to take effect.
-    LOGI("audio_profile configured to %s (restart-audio required)\n",
+    LOGI("RT", "audio_profile configured to %s (restart-audio required)\n",
          audioProfile_name(g_runtime_settings.audio_profile));
     return true;
 }

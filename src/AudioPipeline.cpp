@@ -10,33 +10,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/ringbuf.h"
-
-// ------------------------------------------------------------
-// Logging (compile-time): honour the global LOG_LEVEL macro
-// ------------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-
-#if LOG_LEVEL >= 3
-#define LOGD(fmt, ...) Serial.printf("[D] " fmt, ##__VA_ARGS__)
-#else
-#define LOGD(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) Serial.printf("[I] " fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) Serial.printf("[W] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(...) do {} while (0)
-#define LOGW(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) Serial.printf("[E] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(...) do {} while (0)
-#endif
+#include "LogBuffer.h"  // centralized LOGE/LOGW/LOGI/LOGD(module, fmt, ...)
 
 // ------------------------------------------------------------
 // Compile-time configuration (mirrors main.cpp defaults)
@@ -119,6 +93,12 @@ static volatile bool     s_clipped_last_block = false;
 static volatile uint32_t s_i2s_error_count   = 0;
 static volatile uint32_t s_rb_drop_count     = 0;
 
+// Rate-limit RB drop warnings to avoid flooding the log (one message per 30 s).
+static volatile uint32_t s_last_rb_drop_log_ms = 0;
+#ifndef RB_DROP_LOG_INTERVAL_MS
+#define RB_DROP_LOG_INTERVAL_MS 30000
+#endif
+
 // ------------------------------------------------------------
 // I2S producer task
 // ------------------------------------------------------------
@@ -134,7 +114,7 @@ static void i2sProducerTask(void* /*arg*/) {
     int32_t* in32  = (int32_t*)malloc(frames_per_chunk * BYTES_PER_SAMPLE_IN);
     int16_t* out16 = (int16_t*)malloc(frames_per_chunk * sizeof(int16_t));
     if (!in32 || !out16) {
-        LOGE("[RB] buffer alloc failed; stopping producer\n");
+        LOGE("AP", "[RB] buffer alloc failed; stopping producer\n");
         if (in32)  free(in32);
         if (out16) free(out16);
         vTaskDelete(nullptr);
@@ -180,6 +160,15 @@ static void i2sProducerTask(void* /*arg*/) {
         BaseType_t sent = xRingbufferSend(g_ringbuf, out16, bytes, 0);
         if (sent != pdTRUE) {
             s_rb_drop_count++;
+            // Log first drop and then at most once per RB_DROP_LOG_INTERVAL_MS
+            // to avoid flooding the log during long stalls.
+            uint32_t now_drop = (uint32_t)millis();
+            if (s_last_rb_drop_log_ms == 0 ||
+                (now_drop - s_last_rb_drop_log_ms) >= (uint32_t)RB_DROP_LOG_INTERVAL_MS) {
+                s_last_rb_drop_log_ms = now_drop;
+                LOGW("AP", "[RB] drop #%lu (ring buffer full)\n",
+                     (unsigned long)s_rb_drop_count);
+            }
         }
     }
 }
@@ -210,7 +199,7 @@ bool audioPipeline_init() {
     cfg.fixed_mclk          = 0;
 
     if (i2s_driver_install(I2S_PORT, &cfg, 0, NULL) != ESP_OK) {
-        LOGE("[I2S] driver install failed\n");
+        LOGE("AP", "[I2S] driver install failed\n");
         return false;
     }
 
@@ -221,7 +210,7 @@ bool audioPipeline_init() {
     pins.data_in_num   = PIN_I2S_SD;
 
     if (i2s_set_pin(I2S_PORT, &pins) != ESP_OK) {
-        LOGE("[I2S] set pin failed\n");
+        LOGE("AP", "[I2S] set pin failed\n");
         return false;
     }
 
@@ -229,7 +218,7 @@ bool audioPipeline_init() {
     i2s_set_clk(I2S_PORT, (uint32_t)sample_rate_hz,
                 (i2s_bits_per_sample_t)BITS_PER_SAMPLE, I2S_CHANNEL_MONO);
 
-    LOGI("[I2S] init ok: %d Hz (%s), %d-bit, mono, WS=%d, SCK=%d, SD=%d\n",
+    LOGI("AP", "[I2S] init ok: %d Hz (%s), %d-bit, mono, WS=%d, SCK=%d, SD=%d\n",
          sample_rate_hz,
          audioProfile_name(g_runtime_settings.audio_profile),
          BITS_PER_SAMPLE, PIN_I2S_WS, PIN_I2S_SCK, PIN_I2S_SD);
@@ -256,7 +245,7 @@ bool audioPipeline_init() {
         }
     }
     if (!g_ringbuf) {
-        LOGE("[RB] create failed at %u/%u/%u/%u/%u bytes\n",
+        LOGE("AP", "[RB] create failed at %u/%u/%u/%u/%u bytes\n",
              (unsigned)kFallbackCaps[0], (unsigned)kFallbackCaps[1],
              (unsigned)kFallbackCaps[2], (unsigned)kFallbackCaps[3],
              (unsigned)kFallbackCaps[4]);
@@ -266,7 +255,7 @@ bool audioPipeline_init() {
 
     xTaskCreatePinnedToCore(i2sProducerTask, "i2s_producer",
                             6144, nullptr, 5, &g_i2s_task, 0);
-    LOGI("[RB] created %u bytes, producer task started\n",
+    LOGI("AP", "[RB] created %u bytes, producer task started\n",
          (unsigned)s_active_ringbuf_capacity);
 
     // --- HPF coefficients ---
@@ -277,11 +266,11 @@ bool audioPipeline_init() {
     if (aq < 0.0f)     aq = 0.0f;
     if (aq > 32767.0f) aq = 32767.0f;
     s_hpf_a_q15 = (int32_t)lrintf(aq);
-    LOGI("[HPF] %s, fc=%d Hz, R=%.6f (a_q15=%ld)\n",
+    LOGI("AP", "[HPF] %s, fc=%d Hz, R=%.6f (a_q15=%ld)\n",
          s_hpf_enabled ? "ENABLED" : "disabled",
          (int)g_runtime_settings.hpf_cutoff_hz, R, (long)s_hpf_a_q15);
 
-    LOGI("[AP] profile=%s sample_rate=%d convert_shift=%d\n",
+    LOGI("AP", "[AP] profile=%s sample_rate=%d convert_shift=%d\n",
          audioProfile_name(g_runtime_settings.audio_profile),
          s_active_sample_rate_hz, s_active_convert_shift);
 
@@ -289,10 +278,15 @@ bool audioPipeline_init() {
 }
 
 void audioPipeline_stop() {
+    LOGI("AP", "[AP] stop: drops=%lu i2s_err=%lu clips=%lu\n",
+         (unsigned long)s_rb_drop_count,
+         (unsigned long)s_i2s_error_count,
+         (unsigned long)s_clip_count);
     if (g_i2s_task) { vTaskDelete(g_i2s_task); g_i2s_task = nullptr; }
     if (g_ringbuf)  { vRingbufferDelete(g_ringbuf); g_ringbuf = nullptr; }
     if (g_i2s_ok)   { i2s_driver_uninstall(I2S_PORT); g_i2s_ok = false; }
     g_rb_ok = false;
+    LOGI("AP", "[AP] teardown complete\n");
 }
 
 void audioPipeline_applyHPF(int16_t* buf, size_t frames) {
@@ -350,6 +344,6 @@ void audioPipeline_setHpfConfig(bool enabled, int cutoff_hz) {
     // Reset filter state to avoid transient glitch
     s_hpf_prev_x_i16 = 0;
     s_hpf_prev_y_i32 = 0;
-    LOGI("[HPF] updated: %s, fc=%d Hz (a_q15=%ld)\n",
+    LOGI("AP", "[HPF] updated: %s, fc=%d Hz (a_q15=%ld)\n",
          s_hpf_enabled ? "ENABLED" : "disabled", cutoff_hz, (long)s_hpf_a_q15);
 }

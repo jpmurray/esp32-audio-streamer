@@ -43,10 +43,14 @@ curl -X POST \
 | `/api/status` | System status, stream URLs, active transport, runtime settings, Wi-Fi summary |
 | `/api/audio_status` | I2S/ring-buffer state, profile, sample rate, HPF, levels, drops, stream counters |
 | `/api/perf_status` | Heap, CPU MHz, stack high-water marks, Wi-Fi sleep policy, RSSI |
-| `/api/logs` | Recent in-memory logs |
+| `/api/logs` | Recent in-memory logs (RAM ring buffer only; remote logging does not change this response) |
 | `/api/wifi_status` | Saved/connected SSID, IPs, RSSI, setup AP state, last error |
 | `/api/wifi_scan` | Wi-Fi scan results |
 | `/api/ota/status` | OTA phase, progress, free slot size, last error |
+
+### `/api/logs` note
+
+`/api/logs` returns the contents of the in-memory RAM ring buffer as a JSON array of log strings. It always reflects all logs written since boot (up to the ring capacity), regardless of whether remote UDP/syslog logging is enabled. Enabling `ENABLE_REMOTE_LOG` does not change the shape or contents of this response.
 
 ## POST endpoints
 

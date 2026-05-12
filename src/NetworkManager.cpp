@@ -10,23 +10,8 @@
 #include "esp_wifi.h"
 
 // ------------------------------------------------------------
-// Logging
+// Logging: use centralized macros from LogBuffer.h.
 // ------------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) logbuf_printf("[I][NET] " fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) logbuf_printf("[W][NET] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(...) do {} while (0)
-#define LOGW(...) do {} while (0)
-#endif
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) logbuf_printf("[E][NET] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(...) do {} while (0)
-#endif
 
 // ------------------------------------------------------------
 // Compile-time defaults
@@ -209,7 +194,7 @@ static bool startSetupAp() {
     if (ap_pass.length() >= 8) {
         pass_arg = ap_pass.c_str();
     } else if (ap_pass.length() > 0) {
-        LOGW("setup AP password is shorter than 8 bytes; starting open AP\n");
+        LOGW("NET", "setup AP password is shorter than 8 bytes; starting open AP\n");
     }
 
     bool ok = WiFi.softAP(s_ap_ssid.c_str(), pass_arg,
@@ -218,14 +203,16 @@ static bool startSetupAp() {
                           (int)WIFI_SETUP_AP_MAX_CLIENTS);
     if (!ok) {
         setLastError("failed to start setup AP");
-        LOGE("failed to start setup AP\n");
+            LOGE("NET", "failed to start setup AP\n");
         return false;
     }
 
     s_setup_ap_active = true;
     s_ap_stop_scheduled = false;
-    LOGI("setup AP active: SSID='%s' IP=%s\n",
-         s_ap_ssid.c_str(), WiFi.softAPIP().toString().c_str());
+    LOGI("NET", "setup AP active: SSID='%s' IP=%s ch=%d %s\n",
+         s_ap_ssid.c_str(), WiFi.softAPIP().toString().c_str(),
+         (int)WIFI_SETUP_AP_CHANNEL,
+         pass_arg ? "WPA2" : "open");
     return true;
 }
 
@@ -238,7 +225,7 @@ static void stopSetupApIfSafe() {
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     runtimeSettings_applyWifiTxPower();
-    LOGI("setup AP stopped after successful STA connection\n");
+    LOGI("NET", "setup AP stopped after successful STA connection\n");
 }
 
 static void startStaConnect() {
@@ -248,7 +235,7 @@ static void startStaConnect() {
     WiFi.setSleep(false);
     runtimeSettings_applyWifiTxPower();
 
-    LOGI("connecting STA to SSID='%s'\n", s_saved_ssid.c_str());
+    LOGI("NET", "connecting STA to SSID='%s'\n", s_saved_ssid.c_str());
     WiFi.disconnect(false, false);
     delay(50);
     WiFi.begin(s_saved_ssid.c_str(), s_saved_pass.c_str());
@@ -270,7 +257,7 @@ static bool connectStaBlocking(const String& ssid, const String& pass, uint32_t 
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     runtimeSettings_applyWifiTxPower();
-    LOGI("boot STA connect to SSID='%s' (timeout %lu ms)\n",
+    LOGI("NET", "boot STA connect to SSID='%s' (timeout %lu ms)\n",
          ssid.c_str(), (unsigned long)timeout_ms);
     WiFi.begin(ssid.c_str(), pass.c_str());
     bool ok = waitForStaConnected(timeout_ms);
@@ -278,11 +265,11 @@ static bool connectStaBlocking(const String& ssid, const String& pass, uint32_t 
         s_sta_connecting = false;
         s_ap_stop_scheduled = false;
         setLastError("");
-        LOGI("STA connected: IP=%s RSSI=%d\n",
+        LOGI("NET", "STA connected: IP=%s RSSI=%d\n",
              WiFi.localIP().toString().c_str(), (int)WiFi.RSSI());
     } else {
         setLastError("STA connect timed out");
-        LOGW("STA connect timed out\n");
+        LOGW("NET", "STA connect timed out\n");
         WiFi.disconnect(false, false);
     }
     return ok;
@@ -339,13 +326,13 @@ NetworkBootMode networkManager_begin() {
     String legacy_ssid = String(WIFI_SSID);
     String legacy_pass = String(WIFI_PASS);
     if (!isPlaceholderCredential(legacy_ssid, legacy_pass)) {
-        LOGI("trying legacy compile-time Wi-Fi credentials\n");
+        LOGI("NET", "trying legacy compile-time Wi-Fi credentials\n");
         if (connectStaBlocking(legacy_ssid, legacy_pass, (uint32_t)WIFI_CONNECT_TIMEOUT_MS)) {
             char errmsg[96] = "";
             if (persistCredentials(legacy_ssid, legacy_pass, errmsg, sizeof(errmsg))) {
-                LOGI("migrated legacy compile-time Wi-Fi SSID to NVS\n");
+                LOGI("NET", "migrated legacy compile-time Wi-Fi SSID to NVS\n");
             } else {
-                LOGW("could not persist legacy Wi-Fi credentials: %s\n", errmsg);
+                LOGW("NET", "could not persist legacy Wi-Fi credentials: %s\n", errmsg);
             }
             return NETWORK_BOOT_STA_CONNECTED;
         }
@@ -353,7 +340,7 @@ NetworkBootMode networkManager_begin() {
         return NETWORK_BOOT_STA_FAILED_SETUP_AP;
     }
 
-    LOGI("no saved Wi-Fi credentials; starting setup AP\n");
+    LOGI("NET", "no saved Wi-Fi credentials; starting setup AP\n");
     startSetupAp();
     return NETWORK_BOOT_SETUP_AP;
 }
@@ -363,7 +350,7 @@ void networkManager_loop() {
 
     if (s_disconnect_sta_pending && (int32_t)(now - s_disconnect_sta_at_ms) >= 0) {
         s_disconnect_sta_pending = false;
-        LOGI("disconnecting STA after forget request\n");
+        LOGI("NET", "disconnecting STA after forget request\n");
         WiFi.disconnect(false, false);
     }
 
@@ -378,19 +365,19 @@ void networkManager_loop() {
             s_sta_connecting = false;
             s_next_auto_reconnect_ms = 0;
             setLastError("");
-            LOGI("STA connected: SSID='%s' IP=%s RSSI=%d\n",
+            LOGI("NET", "STA connected: SSID='%s' IP=%s RSSI=%d\n",
                  WiFi.SSID().c_str(), WiFi.localIP().toString().c_str(), (int)WiFi.RSSI());
             if (s_setup_ap_active) {
                 s_ap_stop_scheduled = true;
                 s_ap_stop_at_ms = now + (uint32_t)WIFI_SETUP_AP_SUCCESS_GRACE_MS;
-                LOGI("setup AP will stop in %lu ms\n",
+                LOGI("NET", "setup AP will stop in %lu ms\n",
                      (unsigned long)WIFI_SETUP_AP_SUCCESS_GRACE_MS);
             }
         } else if ((now - s_connect_started_ms) > (uint32_t)WIFI_CONNECT_TIMEOUT_MS) {
             s_sta_connecting = false;
             s_next_auto_reconnect_ms = now + (uint32_t)WIFI_RECONNECT_INTERVAL_MS;
             setLastError("STA connect timed out");
-            LOGW("STA connect timed out; setup AP remains available\n");
+            LOGW("NET", "STA connect timed out; setup AP remains available\n");
             WiFi.disconnect(false, false);
             startSetupAp();
         }
@@ -404,7 +391,7 @@ void networkManager_loop() {
         if (s_next_auto_reconnect_ms == 0) {
             s_next_auto_reconnect_ms = now + (uint32_t)WIFI_RECONNECT_INTERVAL_MS;
         } else if ((int32_t)(now - s_next_auto_reconnect_ms) >= 0) {
-            LOGW("STA disconnected; retrying saved credentials\n");
+            LOGW("NET", "STA disconnected; retrying saved credentials\n");
             startStaConnect();
         }
     }
@@ -455,7 +442,7 @@ bool networkManager_saveCredentials(const String& ssid,
     if (!validatePassword(password, errmsg, errmsg_sz)) return false;
     if (!persistCredentials(ssid, password, errmsg, errmsg_sz)) return false;
     setLastError("");
-    LOGI("saved Wi-Fi credentials for SSID='%s'\n", ssid.c_str());
+    LOGI("NET", "saved Wi-Fi credentials for SSID='%s'\n", ssid.c_str());
     return true;
 }
 
@@ -476,7 +463,7 @@ bool networkManager_forgetCredentials(char* errmsg, size_t errmsg_sz) {
     s_next_auto_reconnect_ms = 0;
     s_ap_stop_scheduled = false;
     setLastError("");
-    LOGI("forgot saved Wi-Fi credentials\n");
+    LOGI("NET", "forgot saved Wi-Fi credentials\n");
     return true;
 }
 
@@ -487,7 +474,7 @@ bool networkManager_requestReconnect(char* errmsg, size_t errmsg_sz) {
     }
     s_reconnect_pending = true;
     s_reconnect_at_ms = millis() + 500;
-    LOGI("STA reconnect scheduled\n");
+    LOGI("NET", "STA reconnect scheduled\n");
     return true;
 }
 

@@ -70,8 +70,23 @@ build_flags =
   '-D LOCAL_TZ="UTC0"'
 
   ; Logging level (compile-time)
-  ; 1 = errors only, 2 = info+warn+error, 3 = verbose/debug
+  ; 1 = errors only, 2 = info+warn+error (default), 3 = verbose/debug
   -D LOG_LEVEL=2                    ; 1=errors, 2=info/warn, 3=debug
+
+  ; Remote UDP/syslog logging (optional, compile-time only)
+  ; Logs are sent as best-effort RFC3164-style UDP datagrams.
+  ; Dropped silently when Wi-Fi is unavailable. No retries.
+  ; REMOTE_LOG_HOST must be an IPv4 literal — DNS is never used.
+  ;
+  ; -D ENABLE_REMOTE_LOG=1
+  ; '-D REMOTE_LOG_HOST="192.168.1.10"'   ; IPv4 literal required
+  ; -D REMOTE_LOG_PORT=514
+  ; '-D REMOTE_LOG_DEVICE="esp32-audio-streamer"'
+  ; -D REMOTE_LOG_MIN_LEVEL=2             ; 1=errors, 2=warn+error, 3=info+..., 4=debug+all
+
+  ; Periodic health log (uptime, heap, net, stream, audio drop stats)
+  ; Set to 0 to disable. Default: 60000 (every 60 s).
+  ; -D HEALTH_LOG_INTERVAL_MS=60000
 
   ; Stream format (toggle raw PCM vs WAV header)
   ; 0 = raw `audio/L16` (default), 1 = `audio/x-wav` with streaming header

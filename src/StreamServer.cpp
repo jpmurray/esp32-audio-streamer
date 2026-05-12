@@ -13,38 +13,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/ringbuf.h"
+#include "LogBuffer.h"  // centralized LOGE/LOGW/LOGI/LOGD(module, fmt, ...)
 
 // RTSP_PORT default is defined in StreamServer.h via #define, but we need it
 // here before that include pulls it in.  Guard against redefinition.
 #ifndef RTSP_PORT
 #define RTSP_PORT 8554
-#endif
-
-// ------------------------------------------------------------
-// Logging (mirrors main.cpp convention)
-// ------------------------------------------------------------
-#ifndef LOG_LEVEL
-#define LOG_LEVEL 2
-#endif
-
-#if LOG_LEVEL >= 3
-#define LOGD(fmt, ...) Serial.printf("[D][SS] " fmt, ##__VA_ARGS__)
-#else
-#define LOGD(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 2
-#define LOGI(fmt, ...) Serial.printf("[I][SS] " fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) Serial.printf("[W][SS] " fmt, ##__VA_ARGS__)
-#else
-#define LOGI(...) do {} while (0)
-#define LOGW(...) do {} while (0)
-#endif
-
-#if LOG_LEVEL >= 1
-#define LOGE(fmt, ...) Serial.printf("[E][SS] " fmt, ##__VA_ARGS__)
-#else
-#define LOGE(...) do {} while (0)
 #endif
 
 // ------------------------------------------------------------
@@ -246,7 +220,7 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
     // to arrive roughly in real time.
     size_t drained = drainQueuedAudioBytes();
     if (drained > 0) {
-        LOGI("Stream: drained %u stale bytes before HTTP session\n", (unsigned)drained);
+        LOGI("SS", "Stream: drained %u stale bytes before HTTP session\n", (unsigned)drained);
     }
 
     client.print("HTTP/1.1 200 OK\r\n");
@@ -301,7 +275,7 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
     while (client.connected() && !g_stream_stop_requested) {
         // Check for Wi-Fi loss (distinct from client TCP disconnect).
         if (WiFi.status() != WL_CONNECTED) {
-            LOGW("Stream: Wi-Fi lost mid-session, closing client\n");
+            LOGW("SS", "Stream: Wi-Fi lost mid-session, closing client\n");
             disc_reason = STREAM_DISC_WIFI_LOST;
             break;
         }
@@ -313,7 +287,7 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
             // the session has been idle too long.
             ++idle_count;
             if (idle_count >= STREAM_IDLE_TIMEOUT_COUNT) {
-                LOGW("Stream idle timeout (%d s), closing client\n",
+                LOGW("SS", "Stream idle timeout (%d s), closing client\n",
                      (int)STREAM_IDLE_TIMEOUT_COUNT);
                 ++g_stream_timeout_count;
                 disc_reason = STREAM_DISC_IDLE_TIMEOUT;
@@ -336,7 +310,7 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
                 ++stall_count;
                 ++g_stream_write_stalls;
                 if (stall_count >= STREAM_WRITE_STALL_LIMIT) {
-                    LOGW("Stream write stalled (%d retries), closing client\n",
+                    LOGW("SS", "Stream write stalled (%d retries), closing client\n",
                          (int)STREAM_WRITE_STALL_LIMIT);
                     ++g_stream_timeout_count;
                     disc_reason = STREAM_DISC_WRITE_STALL;
@@ -374,7 +348,7 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
     g_stream_active = false;
     g_stream_active_transport = STREAM_TRANSPORT_NONE;
     g_stream_stop_requested = false;  // clear for next session
-    LOGI("Stream session ended: reason=%s tx_bytes=%lu duration_ms=%lu write_stalls=%lu\n",
+    LOGI("SS", "Stream session ended: reason=%s tx_bytes=%lu duration_ms=%lu write_stalls=%lu\n",
          streamServer_disconnectReasonName(disc_reason),
          (unsigned long)g_stream_tx_bytes,
          (unsigned long)g_stream_last_session_duration_ms,
@@ -387,13 +361,18 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
 bool streamServer_requestStopAndWait(uint32_t timeout_ms) {
     if (!g_stream_active) return true;  // no active session
     if (!g_stream_stop_requested) {
+        LOGI("SS", "Stream stop requested (timeout %lu ms)\n", (unsigned long)timeout_ms);
         g_stream_stop_requested = true;
     }
     uint32_t start = (uint32_t)millis();
     while (g_stream_active && ((uint32_t)millis() - start) < timeout_ms) {
         delay(20);
     }
-    return !g_stream_active;
+    bool stopped = !g_stream_active;
+    LOGI("SS", "Stream stop %s after %lu ms\n",
+         stopped ? "confirmed" : "timed out",
+         (unsigned long)((uint32_t)millis() - start));
+    return stopped;
 }
 
 // Thin wrappers so WebServer can hold zero-arg function pointers.
@@ -409,7 +388,7 @@ void streamServer_taskBody(void* /*arg*/) {
     s_stream_server.on("/stream.wav", HTTP_GET, handleStreamWav);
     s_stream_server.on("/stream.pcm", HTTP_GET, handleStreamPcm);
     s_stream_server.begin();
-    LOGI("Stream server started on :%d\n", (int)STREAM_PORT);
+    LOGI("SS", "Stream server started on :%d\n", (int)STREAM_PORT);
 
     for (;;) {
         s_stream_server.handleClient();
@@ -573,7 +552,7 @@ static bool rtsp_discardClientInterleavedFrame(WiFiClient& client) {
         remaining -= (uint16_t)got;
         yield();
     }
-    LOGD("RTSP: discarded client interleaved frame ch=%u len=%u\n",
+    LOGD("SS", "RTSP: discarded client interleaved frame ch=%u len=%u\n",
          (unsigned)hdr[1], (unsigned)len);
     return true;
 }
@@ -587,7 +566,7 @@ static bool rtsp_handleRequest(WiFiClient& client,
                                bool& playing) {
     String cseq = rtsp_extractCSeq(req);
     String method = rtsp_extractMethod(req);
-    LOGI("RTSP request: %s CSeq=%s\n", method.c_str(), cseq.c_str());
+    LOGI("SS", "RTSP request: %s CSeq=%s\n", method.c_str(), cseq.c_str());
 
     if (strncmp(req, "OPTIONS", 7) == 0) {
         client.print("RTSP/1.0 200 OK\r\n");
@@ -620,7 +599,7 @@ static bool rtsp_handleRequest(WiFiClient& client,
 
     } else if (strncmp(req, "SETUP", 5) == 0) {
         String transport = rtsp_extractHeader(req, "Transport");
-        LOGI("RTSP SETUP Transport: %s\n", transport.length() ? transport.c_str() : "(missing)");
+        LOGI("SS", "RTSP SETUP Transport: %s\n", transport.length() ? transport.c_str() : "(missing)");
 
         String transport_lc = transport;
         transport_lc.toLowerCase();
@@ -630,7 +609,7 @@ static bool rtsp_handleRequest(WiFiClient& client,
             client.print("RTSP/1.0 461 Unsupported Transport\r\n");
             client.print("CSeq: "); client.print(cseq); client.print("\r\n");
             client.print("Connection: close\r\n\r\n");
-            LOGW("RTSP SETUP rejected: client did not request RTP/AVP/TCP interleaved\n");
+            LOGW("SS", "RTSP SETUP rejected: client did not request RTP/AVP/TCP interleaved\n");
             return false;
         }
 
@@ -664,9 +643,9 @@ static bool rtsp_handleRequest(WiFiClient& client,
         g_rtsp_streaming = true;
         size_t drained = drainQueuedAudioBytes();
         if (drained > 0) {
-            LOGI("RTSP: drained %u stale bytes before PLAY\n", (unsigned)drained);
+            LOGI("SS", "RTSP: drained %u stale bytes before PLAY\n", (unsigned)drained);
         }
-        LOGI("RTSP PLAY: client=%s session=%s\n",
+        LOGI("SS", "RTSP PLAY: client=%s session=%s\n",
              client.remoteIP().toString().c_str(), sessionId.c_str());
 
     } else if (strncmp(req, "TEARDOWN", 8) == 0) {
@@ -675,7 +654,7 @@ static bool rtsp_handleRequest(WiFiClient& client,
         client.print("Session: "); client.print(sessionId); client.print("\r\n\r\n");
         playing = false;
         g_rtsp_streaming = false;
-        LOGI("RTSP TEARDOWN: client=%s\n", client.remoteIP().toString().c_str());
+        LOGI("SS", "RTSP TEARDOWN: client=%s\n", client.remoteIP().toString().c_str());
         return false;  // session done
 
     } else if (strncmp(req, "GET_PARAMETER", 13) == 0) {
@@ -686,7 +665,7 @@ static bool rtsp_handleRequest(WiFiClient& client,
     } else {
         client.print("RTSP/1.0 501 Not Implemented\r\n");
         client.print("CSeq: "); client.print(cseq); client.print("\r\n\r\n");
-        LOGW("RTSP unknown method from %s\n", client.remoteIP().toString().c_str());
+        LOGW("SS", "RTSP unknown method from %s\n", client.remoteIP().toString().c_str());
     }
 
     return true;  // session continues
@@ -697,14 +676,14 @@ static bool rtsp_handleRequest(WiFiClient& client,
 // ------------------------------------------------------------
 void streamServer_rtspTaskBody(void* /*arg*/) {
 #if RTSP_PORT == 0
-    LOGI("RTSP server disabled (RTSP_PORT=0)\n");
+    LOGI("SS", "RTSP server disabled (RTSP_PORT=0)\n");
     vTaskDelete(nullptr);
     return;
 #endif
 
     s_rtsp_server.begin();
     s_rtsp_server.setNoDelay(true);
-    LOGI("RTSP server started on :%d\n", (int)RTSP_PORT);
+    LOGI("SS", "RTSP server started on :%d\n", (int)RTSP_PORT);
 
     // Per-client RTSP parse buffer
     static uint8_t parseBuf[1024];
@@ -722,14 +701,14 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
         // Single-client gate: if HTTP stream or another RTSP session is
         // already active, politely refuse by closing immediately.
         if (g_stream_active) {
-            LOGW("RTSP: client rejected (stream already active)\n");
+            LOGW("SS", "RTSP: client rejected (stream already active)\n");
             client.stop();
             vTaskDelay(pdMS_TO_TICKS(10));
             continue;
         }
 
         if (!g_rb_ok) {
-            LOGW("RTSP: ring buffer not ready, dropping client\n");
+            LOGW("SS", "RTSP: ring buffer not ready, dropping client\n");
             client.stop();
             vTaskDelay(pdMS_TO_TICKS(10));
             continue;
@@ -766,7 +745,7 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
         uint32_t lastActivity = (uint32_t)millis();
 
         String clientIp = client.remoteIP().toString();
-        LOGI("RTSP client connected: %s\n", clientIp.c_str());
+        LOGI("SS", "RTSP client connected: %s\n", clientIp.c_str());
 
         // --------------------------------------------------------
         // Session loop: interleave RTSP control parsing + RTP audio
@@ -777,7 +756,7 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
         while (sessionOk && client.connected() && !g_stream_stop_requested) {
             // Wi-Fi loss check
             if (WiFi.status() != WL_CONNECTED) {
-                LOGW("RTSP: Wi-Fi lost mid-session\n");
+                LOGW("SS", "RTSP: Wi-Fi lost mid-session\n");
                 g_stream_last_disconnect_reason = STREAM_DISC_WIFI_LOST;
                 break;
             }
@@ -828,14 +807,14 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
 
             // Buffer overflow guard
             if (parseBufPos >= (int)sizeof(parseBuf) - 1) {
-                LOGW("RTSP: parse buffer overflow, resetting\n");
+                LOGW("SS", "RTSP: parse buffer overflow, resetting\n");
                 parseBufPos = 0;
             }
 
             // Inactivity timeout for non-playing clients (e.g. stuck at SETUP)
             if (!playing &&
                 ((uint32_t)millis() - lastActivity) > (uint32_t)RTSP_SETUP_TIMEOUT_MS) {
-                LOGW("RTSP: inactivity timeout before PLAY\n");
+                LOGW("SS", "RTSP: inactivity timeout before PLAY\n");
                 g_stream_last_disconnect_reason = STREAM_DISC_IDLE_TIMEOUT;
                 break;
             }
@@ -853,7 +832,7 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
             if (!chunk) {
                 ++idle_count;
                 if (idle_count >= RTSP_IDLE_TIMEOUT_COUNT) {
-                    LOGW("RTSP: idle timeout (%d s), closing client\n",
+                    LOGW("SS", "RTSP: idle timeout (%d s), closing client\n",
                          (int)RTSP_IDLE_TIMEOUT_COUNT);
                     ++g_stream_timeout_count;
                     g_stream_last_disconnect_reason = STREAM_DISC_IDLE_TIMEOUT;
@@ -872,7 +851,7 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
             vRingbufferReturnItem(g_ringbuf, (void*)chunk);
 
             if (!writeOk) {
-                LOGW("RTSP: write failed, closing client\n");
+            LOGW("SS", "RTSP: write failed, closing client\n");
                 ++g_stream_write_stalls;
                 g_stream_last_disconnect_reason = STREAM_DISC_WRITE_STALL;
                 sessionOk = false;
@@ -906,7 +885,7 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
         g_stream_active_transport = STREAM_TRANSPORT_NONE;
         g_stream_stop_requested = false;
 
-        LOGI("RTSP session ended: client=%s reason=%s tx_bytes=%lu duration_ms=%lu\n",
+        LOGI("SS", "RTSP session ended: client=%s reason=%s tx_bytes=%lu duration_ms=%lu\n",
              clientIp.c_str(),
              streamServer_disconnectReasonName(g_stream_last_disconnect_reason),
              (unsigned long)g_stream_tx_bytes,
@@ -921,7 +900,7 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
 // ------------------------------------------------------------
 bool streamServer_init() {
     if (!g_i2s_ok || !g_rb_ok) {
-        LOGW("Audio pipeline not ready; stream server will respond with 503\n");
+        LOGW("SS", "Audio pipeline not ready; stream server will respond with 503\n");
         // Still start the server so clients get a proper error instead of a
         // connection refused.
     }
@@ -937,10 +916,10 @@ bool streamServer_init() {
     );
 
     if (rc != pdPASS) {
-        LOGE("Failed to create stream server task (err %d)\n", (int)rc);
+        LOGE("SS", "Failed to create stream server task (err %d)\n", (int)rc);
         return false;
     }
-    LOGI("Stream server task created (core %d, prio %d)\n",
+    LOGI("SS", "Stream server task created (core %d, prio %d)\n",
          (int)STREAM_TASK_CORE, (int)STREAM_TASK_PRIORITY);
 
 #if RTSP_PORT != 0
@@ -955,10 +934,10 @@ bool streamServer_init() {
     );
 
     if (rcR != pdPASS) {
-        LOGE("Failed to create RTSP server task (err %d)\n", (int)rcR);
+        LOGE("SS", "Failed to create RTSP server task (err %d)\n", (int)rcR);
         // Non-fatal: HTTP stream still works.
     } else {
-        LOGI("RTSP server task created (core %d, prio %d)\n",
+        LOGI("SS", "RTSP server task created (core %d, prio %d)\n",
              (int)RTSP_TASK_CORE, (int)RTSP_TASK_PRIORITY);
     }
 #endif
