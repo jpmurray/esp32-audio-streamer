@@ -52,7 +52,7 @@
 #define WIFI_TX_POWER_DBM 15
 #endif
 #ifndef ENABLE_BROWNOUT_DISABLE
-#define ENABLE_BROWNOUT_DISABLE 1
+#define ENABLE_BROWNOUT_DISABLE 0
 #endif
 #ifndef SERVER_PORT
 #define SERVER_PORT 80
@@ -147,9 +147,13 @@ static void logHealthSnapshot() {
     // Network state
     const char* net_state;
     int rssi = 0;
+    const char* rssi_quality = "";
     if (networkManager_staConnected()) {
         net_state = "sta";
         rssi = WiFi.RSSI();
+        NetworkStatusSnapshot netsnap;
+        networkManager_getStatus(&netsnap);
+        rssi_quality = networkManager_rssiQualityName(netsnap.rssi_quality);
     } else if (networkManager_setupApActive()) {
         net_state = "ap";
     } else {
@@ -163,10 +167,10 @@ static void logHealthSnapshot() {
     AudioMetrics am = audioPipeline_getMetrics();
 
     // Log a single compact line
-    LOGI("MAIN", "Health: up=%lus heap=%lu/%lu net=%s rssi=%d stream=%s drops=%lu i2serr=%lu\n",
+    LOGI("MAIN", "Health: up=%lus heap=%lu/%lu net=%s rssi=%d(%s) stream=%s drops=%lu i2serr=%lu\n",
          (unsigned long)uptime_s,
          (unsigned long)heap_free, (unsigned long)heap_min,
-         net_state, rssi,
+         net_state, rssi, rssi_quality,
          stream_state,
          (unsigned long)am.rb_drop_count,
          (unsigned long)am.i2s_error_count);

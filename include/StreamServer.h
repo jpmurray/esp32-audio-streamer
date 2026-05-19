@@ -168,3 +168,29 @@ uint32_t streamServer_getTaskHighWaterMark();
 // Returns the RTSP task FreeRTOS stack high-water mark in bytes.
 // Returns 0 if the task has not been created yet.
 uint32_t streamServer_getRtspTaskHighWaterMark();
+
+// ------------------------------------------------------------
+// Consumer-active query (used by AudioPipeline to gate ring-buffer sends)
+// ------------------------------------------------------------
+
+// Returns true when at least one audio consumer is actively receiving:
+//   - HTTP stream is connected (g_stream_active + HTTP transport), or
+//   - RTSP client has sent PLAY and is streaming (g_rtsp_streaming).
+// False during idle / RTSP SETUP-but-not-playing / between sessions.
+bool streamServer_audioConsumerActive();
+
+// ------------------------------------------------------------
+// Write-stall diagnostics (per-session + last-session)
+// ------------------------------------------------------------
+
+struct StreamWriteDiagnostics {
+    uint32_t current_write_stalls;            // zero-byte write stalls in current session
+    uint32_t current_max_consecutive_stalls;  // max run of consecutive stalls this session
+    uint32_t last_session_write_stalls;       // stall count from the last completed session
+    uint32_t last_session_max_consecutive_stalls; // max consecutive stalls in last session
+    int      last_write_errno;                // best-effort errno after last zero-byte write
+    uint32_t last_write_errno_ms;             // millis() when last_write_errno was captured
+};
+
+// Snapshot of current and last-session write-stall diagnostics.
+void streamServer_getWriteDiagnostics(StreamWriteDiagnostics* out);

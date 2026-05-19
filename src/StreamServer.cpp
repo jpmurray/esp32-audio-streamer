@@ -65,7 +65,7 @@
 
 // Max consecutive write-failure retries inside the RTSP RTP send loop.
 #ifndef RTSP_WRITE_STALL_LIMIT
-#define RTSP_WRITE_STALL_LIMIT 500
+#define RTSP_WRITE_STALL_LIMIT 50
 #endif
 
 // Inactivity timeout (ms) before we close a connected-but-not-playing RTSP
@@ -74,13 +74,20 @@
 #define RTSP_SETUP_TIMEOUT_MS 30000
 #endif
 
+// Maximum sample rate advertised over RTSP. 0 disables the guard.
+// Default 24 kHz because field testing shows 48 kHz L16/RTSP exceeds ESP32
+// TCP/heap/client tolerance, while stability_24k plays reliably.
+#ifndef RTSP_MAX_SAMPLE_RATE_HZ
+#define RTSP_MAX_SAMPLE_RATE_HZ 24000
+#endif
+
 // ------------------------------------------------------------
 // Hardening tunables
 // Consecutive zero-byte writes before we give up on a stalled client.
-// Raised from 200 to 500 to tolerate short TCP back-pressure bursts that occur
-// when BirdNET-Go is busy processing a segment.
+// 50 retries × 1 ms = ~50 ms maximum stall wait before teardown.
+// Reduced from 500 so a stalled client is closed in ~50 ms instead of ~500 ms.
 #ifndef STREAM_WRITE_STALL_LIMIT
-#define STREAM_WRITE_STALL_LIMIT 500
+#define STREAM_WRITE_STALL_LIMIT 50
 #endif
 // Max consecutive ring-buffer receive timeouts (each 1 s) before treating
 // the session as idle/dead and exiting.  Raised from 5 to 30 so a 30-second
@@ -117,6 +124,13 @@ volatile StreamTransport        g_stream_last_transport           = STREAM_TRANS
 volatile StreamDisconnectReason g_rtsp_last_disconnect_reason   = STREAM_DISC_NONE;
 volatile uint32_t               g_rtsp_last_session_duration_ms = 0;
 volatile uint32_t               g_rtsp_last_session_tx_bytes    = 0;
+
+// Write-stall diagnostics (current session + last session)
+static volatile uint32_t s_current_max_consecutive_stalls   = 0;
+static volatile uint32_t s_last_session_write_stalls        = 0;
+static volatile uint32_t s_last_session_max_consecutive_stalls = 0;
+static volatile int      s_last_write_errno                 = 0;
+static volatile uint32_t s_last_write_errno_ms              = 0;
 
 static WebServer  s_stream_server(STREAM_PORT);
 static TaskHandle_t s_stream_task = nullptr;
@@ -168,6 +182,23 @@ uint32_t streamServer_getRtspTaskHighWaterMark() {
     return s_rtsp_task ? (uint32_t)uxTaskGetStackHighWaterMark(s_rtsp_task) : 0;
 }
 
+bool streamServer_audioConsumerActive() {
+    // HTTP session active, or RTSP actively playing (after PLAY, before TEARDOWN).
+    if (g_stream_active && g_stream_active_transport == STREAM_TRANSPORT_HTTP) return true;
+    if (g_rtsp_streaming) return true;
+    return false;
+}
+
+void streamServer_getWriteDiagnostics(StreamWriteDiagnostics* out) {
+    if (!out) return;
+    out->current_write_stalls              = g_stream_write_stalls;
+    out->current_max_consecutive_stalls    = s_current_max_consecutive_stalls;
+    out->last_session_write_stalls         = s_last_session_write_stalls;
+    out->last_session_max_consecutive_stalls = s_last_session_max_consecutive_stalls;
+    out->last_write_errno                  = s_last_write_errno;
+    out->last_write_errno_ms               = s_last_write_errno_ms;
+}
+
 // ------------------------------------------------------------
 // Shared ring-buffer helper
 // ------------------------------------------------------------
@@ -200,9 +231,10 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
     bool useWav = (fmt == STREAM_FORMAT_WAV) ||
                   (fmt == STREAM_FORMAT_DEFAULT && STREAM_WAV_ENABLE);
 
-    // Reset per-session transmit counters.
-    g_stream_tx_bytes     = 0;
-    g_stream_write_stalls = 0;
+    // Reset per-session transmit and stall counters.
+    g_stream_tx_bytes            = 0;
+    g_stream_write_stalls        = 0;
+    s_current_max_consecutive_stalls = 0;
 
     g_stream_active = true;
     g_stream_active_transport = STREAM_TRANSPORT_HTTP;
@@ -309,6 +341,10 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
             if (n == 0) {
                 ++stall_count;
                 ++g_stream_write_stalls;
+                if (stall_count > (int)s_current_max_consecutive_stalls)
+                    s_current_max_consecutive_stalls = (uint32_t)stall_count;
+                // Best-effort errno capture (guarded; not all platforms set it).
+                { int e = errno; if (e != 0) { s_last_write_errno = e; s_last_write_errno_ms = (uint32_t)millis(); } }
                 if (stall_count >= STREAM_WRITE_STALL_LIMIT) {
                     LOGW("SS", "Stream write stalled (%d retries), closing client\n",
                          (int)STREAM_WRITE_STALL_LIMIT);
@@ -345,6 +381,10 @@ static void handleStreamFormat(StreamResponseFormat fmt) {
     g_stream_last_session_duration_ms = session_end_ms - g_stream_session_started_ms;
     g_stream_last_disconnect_reason   = disc_reason;
     g_stream_last_transport           = STREAM_TRANSPORT_HTTP;
+    // Save last-session stall diagnostics before clearing current counters.
+    s_last_session_write_stalls            = g_stream_write_stalls;
+    s_last_session_max_consecutive_stalls  = s_current_max_consecutive_stalls;
+    s_current_max_consecutive_stalls       = 0;
     g_stream_active = false;
     g_stream_active_transport = STREAM_TRANSPORT_NONE;
     g_stream_stop_requested = false;  // clear for next session
@@ -408,7 +448,12 @@ static bool rtsp_writeAll(WiFiClient& client, const uint8_t* buf, size_t len) {
     while (len > 0 && client.connected()) {
         size_t n = client.write(buf, len);
         if (n == 0) {
-            if (++stalls >= RTSP_WRITE_STALL_LIMIT) return false;
+            ++stalls;
+            ++g_stream_write_stalls;
+            if (stalls > (int)s_current_max_consecutive_stalls)
+                s_current_max_consecutive_stalls = (uint32_t)stalls;
+            { int e = errno; if (e != 0) { s_last_write_errno = e; s_last_write_errno_ms = (uint32_t)millis(); } }
+            if (stalls >= RTSP_WRITE_STALL_LIMIT) return false;
             delay(1);
         } else {
             stalls = 0;
@@ -575,6 +620,16 @@ static bool rtsp_handleRequest(WiFiClient& client,
 
     } else if (strncmp(req, "DESCRIBE", 8) == 0) {
         uint32_t sr = (uint32_t)audioPipeline_getActiveSampleRateHz();
+#if RTSP_MAX_SAMPLE_RATE_HZ > 0
+        if (sr > (uint32_t)RTSP_MAX_SAMPLE_RATE_HZ) {
+            client.print("RTSP/1.0 551 Option Not Supported\r\n");
+            client.print("CSeq: "); client.print(cseq); client.print("\r\n");
+            client.print("Connection: close\r\n\r\n");
+            LOGW("SS", "RTSP DESCRIBE rejected: sample_rate=%lu exceeds RTSP_MAX_SAMPLE_RATE_HZ=%d; use stability_24k\n",
+                 (unsigned long)sr, (int)RTSP_MAX_SAMPLE_RATE_HZ);
+            return false;
+        }
+#endif
         // Build SDP
         String sdp;
         sdp.reserve(256);
@@ -724,6 +779,11 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
         g_stream_active_transport = STREAM_TRANSPORT_RTSP;
         g_stream_tx_bytes = 0;
         g_stream_write_stalls = 0;
+        // Reset stall diagnostics and disconnect reason for this new session so
+        // stale state from a prior session cannot bleed into cleanup.
+        s_current_max_consecutive_stalls = 0;
+        g_stream_last_disconnect_reason = STREAM_DISC_NONE;
+        g_rtsp_last_disconnect_reason   = STREAM_DISC_NONE;
         g_stream_session_started_ms = (uint32_t)millis();
 
         char deviceIp[16] = "";
@@ -821,7 +881,9 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
 
             // ---- RTP audio (only when client sent PLAY) ----
             if (!playing || !g_rb_ok) {
-                yield();
+                // Small real delay instead of bare yield() so the FreeRTOS
+                // scheduler can run other tasks while waiting for PLAY.
+                vTaskDelay(pdMS_TO_TICKS(5));
                 continue;
             }
 
@@ -881,6 +943,10 @@ void streamServer_rtspTaskBody(void* /*arg*/) {
         g_rtsp_last_session_duration_ms   = session_end_ms - g_stream_session_started_ms;
         g_rtsp_last_disconnect_reason     = g_stream_last_disconnect_reason;
         g_stream_last_transport           = STREAM_TRANSPORT_RTSP;
+        // Save last-session stall diagnostics before clearing current counters.
+        s_last_session_write_stalls            = g_stream_write_stalls;
+        s_last_session_max_consecutive_stalls  = s_current_max_consecutive_stalls;
+        s_current_max_consecutive_stalls       = 0;
         g_stream_active = false;
         g_stream_active_transport = STREAM_TRANSPORT_NONE;
         g_stream_stop_requested = false;

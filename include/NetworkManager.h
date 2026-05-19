@@ -16,6 +16,16 @@ enum NetworkBootMode {
 };
 
 // ------------------------------------------------------------
+// RSSI quality classification
+// ------------------------------------------------------------
+enum NetworkRssiQuality {
+    NETWORK_RSSI_UNKNOWN  = 0,
+    NETWORK_RSSI_GOOD     = 1,
+    NETWORK_RSSI_WEAK     = 2,
+    NETWORK_RSSI_UNSTABLE = 3
+};
+
+// ------------------------------------------------------------
 // Status snapshot
 // ------------------------------------------------------------
 struct NetworkStatusSnapshot {
@@ -26,6 +36,10 @@ struct NetworkStatusSnapshot {
     bool ap_stop_scheduled;
     int  wifi_status_code;
     int  rssi_dbm;
+    NetworkRssiQuality rssi_quality;
+    bool rssi_streaming_warning;
+    int  rssi_warn_dbm;
+    int  rssi_unstable_dbm;
     char saved_ssid[33];
     char connected_ssid[33];
     char sta_ip[16];
@@ -68,3 +82,4 @@ bool networkManager_requestForgetAndStartAp(bool disconnectSta,
 const char* networkManager_primaryIpString(char* out, size_t out_sz);
 const char* networkManager_streamHostIpString(char* out, size_t out_sz);
 int networkManager_writeStatusJson(char* out, size_t out_sz);
+const char* networkManager_rssiQualityName(NetworkRssiQuality q);

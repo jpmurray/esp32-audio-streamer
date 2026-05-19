@@ -70,6 +70,26 @@
 #define REMOTE_LOG_MIN_LEVEL 2
 #endif
 
+// Number of consecutive send failures before the remote sink enters backoff.
+// After this many failures the sink is suspended for REMOTE_LOG_BACKOFF_MS.
+#ifndef REMOTE_LOG_FAILURE_THRESHOLD
+#define REMOTE_LOG_FAILURE_THRESHOLD 3
+#endif
+
+// Suspension duration in milliseconds after hitting REMOTE_LOG_FAILURE_THRESHOLD.
+// After this window the sink is re-enabled automatically.
+// Default: 5 minutes.
+#ifndef REMOTE_LOG_BACKOFF_MS
+#define REMOTE_LOG_BACKOFF_MS 300000
+#endif
+
+// STA RSSI threshold below which remote UDP sends are skipped entirely.
+// Skipped sends do NOT count as send failures.
+// Set to a large negative value (e.g. -120) to disable the RSSI guard.
+#ifndef REMOTE_LOG_MIN_RSSI_DBM
+#define REMOTE_LOG_MIN_RSSI_DBM -75
+#endif
+
 // ------------------------------------------------------------
 // Log severity
 // ------------------------------------------------------------
@@ -106,6 +126,29 @@ enum LogSeverity : uint8_t {
 #else
 #define LOGD(mod, ...) do {} while (0)
 #endif
+
+// ------------------------------------------------------------
+// Remote log status snapshot
+// ------------------------------------------------------------
+
+// Read-only snapshot of the remote logging sink state.
+// Fields are valid regardless of ENABLE_REMOTE_LOG value.
+struct RemoteLogStatus {
+    bool     compiled_enabled;        // ENABLE_REMOTE_LOG was 1 at build time
+    bool     configured;              // IP address parsed successfully
+    bool     suspended;               // currently in backoff suspension
+    uint32_t total_attempts;          // cumulative send attempts
+    uint32_t total_successes;         // cumulative successful sends
+    uint32_t total_failures;          // cumulative send failures
+    uint32_t total_skipped_weak_rssi; // sends skipped due to weak RSSI
+    uint32_t consecutive_failures;    // failures since last success
+    uint32_t suspended_until_ms;      // millis() value when suspension expires
+    int      last_rssi_dbm;           // RSSI observed at last attempt (0 = N/A)
+};
+
+// Fill *out with the current remote logging state.
+// Safe to call from any task. No LOG* calls are made internally.
+void logbuf_getRemoteStatus(RemoteLogStatus* out);
 
 // ------------------------------------------------------------
 // Lifecycle

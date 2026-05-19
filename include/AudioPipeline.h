@@ -18,6 +18,9 @@ struct AudioMetrics {
     bool     clipped_last_block;// true if any clip occurred in the most-recent chunk
     uint32_t i2s_error_count;   // cumulative i2s_read() failures
     uint32_t rb_drop_count;     // cumulative xRingbufferSend() drops (ring buffer full)
+    // Idle discard: samples converted but not sent to ring buffer (no active consumer).
+    uint32_t idle_discard_count; // cumulative chunks discarded while no consumer was active
+    uint32_t idle_discard_bytes; // cumulative PCM bytes discarded while no consumer was active
 };
 
 // Snapshot current metrics (thread-safe copy).

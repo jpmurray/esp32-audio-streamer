@@ -27,6 +27,7 @@
 //   Provides higher spectral resolution and is the recommended default.
 //   Requires ~2x the ring-buffer bandwidth vs. 24 kHz.
 // AUDIO_PROFILE_STABILITY_24K — 24 kHz, reduces bandwidth and DMA pressure.
+// AUDIO_PROFILE_DEFAULT can be set to one of these enum values at build time.
 //   Use on marginal Wi-Fi or when the 48 kHz stream drops frequently.
 enum AudioProfile : uint8_t {
     AUDIO_PROFILE_QUALITY_48K   = 0,

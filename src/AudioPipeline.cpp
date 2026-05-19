@@ -3,6 +3,7 @@
 #include "AudioPipeline.h"
 #include "AppState.h"
 #include "RuntimeSettings.h"
+#include "StreamServer.h"   // streamServer_audioConsumerActive()
 
 #include <Arduino.h>
 #include <math.h>
@@ -59,6 +60,19 @@
 #define DMA_BUF_COUNT_CFG 4
 #endif
 
+// I2S producer task tunables. Override in local_env.ini to move the task to
+// a different core or priority without modifying source.
+// Default: core 1 (away from Wi-Fi/lwIP on core 0), priority 4.
+#ifndef I2S_TASK_STACK_WORDS
+#define I2S_TASK_STACK_WORDS 6144
+#endif
+#ifndef I2S_TASK_PRIORITY
+#define I2S_TASK_PRIORITY 4
+#endif
+#ifndef I2S_TASK_CORE
+#define I2S_TASK_CORE 1
+#endif
+
 // ------------------------------------------------------------
 // Internal constants
 // ------------------------------------------------------------
@@ -98,6 +112,11 @@ static volatile uint32_t s_last_rb_drop_log_ms = 0;
 #ifndef RB_DROP_LOG_INTERVAL_MS
 #define RB_DROP_LOG_INTERVAL_MS 30000
 #endif
+
+// Idle discard metrics: incremented when producer skips ring-buffer send because
+// no audio consumer (HTTP or RTSP) is currently active.
+static volatile uint32_t s_idle_discard_count = 0;
+static volatile uint32_t s_idle_discard_bytes = 0;
 
 // ------------------------------------------------------------
 // I2S producer task
@@ -157,6 +176,16 @@ static void i2sProducerTask(void* /*arg*/) {
         s_clipped_last_block = clipped;
 
         size_t bytes = frames * sizeof(int16_t);
+
+        // Only send to the ring buffer when a consumer is actively receiving.
+        // When idle, discard the converted chunk silently — DMA is already drained
+        // by the i2s_read() call above, and metrics remain current.
+        if (!streamServer_audioConsumerActive()) {
+            s_idle_discard_count++;
+            s_idle_discard_bytes += (uint32_t)bytes;
+            continue;  // back to top of producer loop
+        }
+
         BaseType_t sent = xRingbufferSend(g_ringbuf, out16, bytes, 0);
         if (sent != pdTRUE) {
             s_rb_drop_count++;
@@ -254,9 +283,11 @@ bool audioPipeline_init() {
     g_rb_ok = true;
 
     xTaskCreatePinnedToCore(i2sProducerTask, "i2s_producer",
-                            6144, nullptr, 5, &g_i2s_task, 0);
-    LOGI("AP", "[RB] created %u bytes, producer task started\n",
-         (unsigned)s_active_ringbuf_capacity);
+                            I2S_TASK_STACK_WORDS, nullptr, I2S_TASK_PRIORITY,
+                            &g_i2s_task, I2S_TASK_CORE);
+    LOGI("AP", "[RB] created %u bytes, producer task started (core %d prio %d)\n",
+         (unsigned)s_active_ringbuf_capacity,
+         (int)I2S_TASK_CORE, (int)I2S_TASK_PRIORITY);
 
     // --- HPF coefficients ---
     const float fs = (float)sample_rate_hz;
@@ -278,10 +309,11 @@ bool audioPipeline_init() {
 }
 
 void audioPipeline_stop() {
-    LOGI("AP", "[AP] stop: drops=%lu i2s_err=%lu clips=%lu\n",
+    LOGI("AP", "[AP] stop: drops=%lu i2s_err=%lu clips=%lu idle_discards=%lu\n",
          (unsigned long)s_rb_drop_count,
          (unsigned long)s_i2s_error_count,
-         (unsigned long)s_clip_count);
+         (unsigned long)s_clip_count,
+         (unsigned long)s_idle_discard_count);
     if (g_i2s_task) { vTaskDelete(g_i2s_task); g_i2s_task = nullptr; }
     if (g_ringbuf)  { vRingbufferDelete(g_ringbuf); g_ringbuf = nullptr; }
     if (g_i2s_ok)   { i2s_driver_uninstall(I2S_PORT); g_i2s_ok = false; }
@@ -312,6 +344,8 @@ AudioMetrics audioPipeline_getMetrics() {
     m.clipped_last_block = s_clipped_last_block;
     m.i2s_error_count    = s_i2s_error_count;
     m.rb_drop_count      = s_rb_drop_count;
+    m.idle_discard_count = s_idle_discard_count;
+    m.idle_discard_bytes = s_idle_discard_bytes;
     return m;
 }
 

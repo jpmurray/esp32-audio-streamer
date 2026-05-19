@@ -42,7 +42,7 @@ curl -X POST \
 |---|---|
 | `/api/status` | System status, stream URLs, active transport, runtime settings, Wi-Fi summary |
 | `/api/audio_status` | I2S/ring-buffer state, profile, sample rate, HPF, levels, drops, stream counters |
-| `/api/perf_status` | Heap, CPU MHz, stack high-water marks, Wi-Fi sleep policy, RSSI |
+| `/api/perf_status` | Heap, CPU MHz, stack high-water marks, Wi-Fi sleep policy, RSSI, remote-log status |
 | `/api/logs` | Recent in-memory logs (RAM ring buffer only; remote logging does not change this response) |
 | `/api/wifi_status` | Saved/connected SSID, IPs, RSSI, setup AP state, last error |
 | `/api/wifi_scan` | Wi-Fi scan results |
@@ -221,3 +221,74 @@ The dashboard uses `/api/status` stream fields:
 | `rtsp_url` | RTSP stream URL |
 
 `connect_count` is a session counter, not a current-client count.
+
+## `/api/audio_status` write-stall diagnostics
+
+The following fields are included in `/api/audio_status` to diagnose TCP write stalls:
+
+| Field | Type | Description |
+|---|---|---|
+| `write_stall_limit` | int | Compile-time HTTP write-stall limit (default 50) |
+| `rtsp_write_stall_limit` | int | Compile-time RTSP write-stall limit (default 50) |
+| `stream_write_stalls` | uint | Cumulative zero-byte write stalls in the current/last session |
+| `current_max_consecutive_write_stalls` | uint | Longest run of consecutive stalls in the active session (0 when idle) |
+| `last_session_write_stalls` | uint | Total stalls from the previous completed session |
+| `last_session_max_consecutive_write_stalls` | uint | Max consecutive stalls from the previous completed session |
+| `last_write_errno` | int | Best-effort `errno` value after the most recent zero-byte write; 0 if unavailable |
+
+A stalled client is closed after `write_stall_limit` (HTTP) or `rtsp_write_stall_limit` (RTSP) consecutive zero-byte write rounds (~1 ms each), so teardown occurs quickly under TCP backpressure.
+
+RTSP defaults to a maximum advertised sample rate of 24 kHz (`RTSP_MAX_SAMPLE_RATE_HZ=24000`). When the active audio profile exceeds that limit, RTSP `DESCRIBE` is rejected with `551 Option Not Supported`; switch to `stability_24k` or set `RTSP_MAX_SAMPLE_RATE_HZ=0` to disable the guard.
+
+## `/api/audio_status` idle-discard counters
+
+When no HTTP or RTSP consumer is actively receiving audio, the I2S producer still reads I2S DMA and updates level/clip metrics, but skips the ring-buffer send. The discarded data is counted:
+
+| Field | Type | Description |
+|---|---|---|
+| `idle_discard_count` | uint | Cumulative producer chunks discarded while no consumer was active |
+| `idle_discard_bytes` | uint | Cumulative PCM bytes discarded while no consumer was active |
+
+These counters climbing while `stream_active` is `false` is expected normal behaviour. `rb_drop_count` should remain flat while no consumer is connected.
+
+## `/api/perf_status` `remote_log` object
+
+The `remote_log` nested object is always present in `/api/perf_status`, regardless of whether `ENABLE_REMOTE_LOG` was set at build time.
+
+| Field | Type | Description |
+|---|---|---|
+| `compiled_enabled` | bool | `true` if `ENABLE_REMOTE_LOG=1` was set at build time |
+| `configured` | bool | `true` if `REMOTE_LOG_HOST` was a valid IPv4 literal at init |
+| `suspended` | bool | `true` if the sink is currently in a backoff suspension window |
+| `total_attempts` | uint | Cumulative UDP send attempts since boot |
+| `total_successes` | uint | Cumulative successful UDP sends since boot |
+| `total_failures` | uint | Cumulative send failures since boot |
+| `total_skipped_weak_rssi` | uint | Sends skipped due to RSSI below `REMOTE_LOG_MIN_RSSI_DBM` |
+| `consecutive_failures` | uint | Failures since the last success (resets on success or after backoff expires) |
+| `suspended_until_ms` | uint | `millis()` value when the current suspension expires; 0 when not suspended |
+| `last_rssi_dbm` | int | STA RSSI observed at the last send attempt; 0 if no attempt has been made |
+
+When `suspended` is `true`, remote UDP sends are paused until `suspended_until_ms`. The suspension is cleared automatically when the backoff window expires; the device does **not** need to be rebooted.
+
+When `compiled_enabled` is `false`, all counters are zero and the object is informational only.
+
+## `/api/wifi_status` RSSI quality fields
+
+The following fields are always present in `/api/wifi_status` (and in the `wifi` sub-object of `/api/status`):
+
+| Field | Type | Description |
+|---|---|---|
+| `rssi_dbm` | int or null | Current STA RSSI in dBm; `null` when disconnected |
+| `rssi_quality` | string | `good`, `weak`, `unstable`, or `unknown` (see thresholds below) |
+| `rssi_streaming_warning` | bool | `true` when quality is `weak` or `unstable` |
+| `rssi_warn_dbm` | int | Threshold at or below which quality is `weak` (compile-time `WIFI_RSSI_WARN_DBM`, default -70) |
+| `rssi_unstable_dbm` | int | Threshold at or below which quality is `unstable` (compile-time `WIFI_RSSI_UNSTABLE_DBM`, default -75) |
+
+`rssi_quality` values:
+
+| Value | Condition | Streaming impact |
+|---|---|---|
+| `good` | RSSI > `rssi_warn_dbm` | Acceptable |
+| `weak` | RSSI ≤ `rssi_warn_dbm` | May cause occasional stalls or reconnects |
+| `unstable` | RSSI ≤ `rssi_unstable_dbm` | Likely to cause stream interruptions |
+| `unknown` | STA disconnected | Cannot be assessed |

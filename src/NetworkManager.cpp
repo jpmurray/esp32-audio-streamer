@@ -47,6 +47,22 @@
 #define WIFI_SETUP_AP_SUCCESS_GRACE_MS 120000
 #endif
 
+// RSSI quality classification thresholds.
+// RSSI <= WIFI_RSSI_UNSTABLE_DBM => unstable (streaming likely impaired)
+// RSSI <= WIFI_RSSI_WARN_DBM     => weak (streaming may be affected)
+// RSSI  > WIFI_RSSI_WARN_DBM     => good
+#ifndef WIFI_RSSI_WARN_DBM
+#define WIFI_RSSI_WARN_DBM     (-70)
+#endif
+#ifndef WIFI_RSSI_UNSTABLE_DBM
+#define WIFI_RSSI_UNSTABLE_DBM (-75)
+#endif
+
+// Minimum interval between repeated weak/unstable RSSI log warnings (ms).
+#ifndef WIFI_RSSI_WARN_LOG_INTERVAL_MS
+#define WIFI_RSSI_WARN_LOG_INTERVAL_MS 60000
+#endif
+
 // ------------------------------------------------------------
 // Preferences
 // ------------------------------------------------------------
@@ -73,6 +89,9 @@ static uint32_t s_reconnect_at_ms = 0;
 static uint32_t s_next_auto_reconnect_ms = 0;
 static uint32_t s_ap_stop_at_ms = 0;
 static uint32_t s_disconnect_sta_at_ms = 0;
+
+// RSSI observability state
+static uint32_t s_rssi_warn_log_at_ms = 0;  // next allowed warn log timestamp
 
 // ------------------------------------------------------------
 // Internal helpers
@@ -164,6 +183,25 @@ static String makeSetupApSsid() {
 #endif
     if (ssid.length() > 39) ssid = ssid.substring(0, 39);
     return ssid;
+}
+
+// ------------------------------------------------------------
+// RSSI quality helpers
+// ------------------------------------------------------------
+const char* networkManager_rssiQualityName(NetworkRssiQuality q) {
+    switch (q) {
+        case NETWORK_RSSI_GOOD:     return "good";
+        case NETWORK_RSSI_WEAK:     return "weak";
+        case NETWORK_RSSI_UNSTABLE: return "unstable";
+        default:                    return "unknown";
+    }
+}
+
+static NetworkRssiQuality classifyRssi(bool connected, int rssi) {
+    if (!connected) return NETWORK_RSSI_UNKNOWN;
+    if (rssi <= (int)WIFI_RSSI_UNSTABLE_DBM) return NETWORK_RSSI_UNSTABLE;
+    if (rssi <= (int)WIFI_RSSI_WARN_DBM)     return NETWORK_RSSI_WEAK;
+    return NETWORK_RSSI_GOOD;
 }
 
 static void setLastError(const char* msg) {
@@ -387,6 +425,22 @@ void networkManager_loop() {
         stopSetupApIfSafe();
     }
 
+    // Rate-limited RSSI quality warnings
+    if (networkManager_staConnected()) {
+        int rssi = (int)WiFi.RSSI();
+        NetworkRssiQuality quality = classifyRssi(true, rssi);
+        if (quality == NETWORK_RSSI_WEAK || quality == NETWORK_RSSI_UNSTABLE) {
+            if (s_rssi_warn_log_at_ms == 0 || (int32_t)(now - s_rssi_warn_log_at_ms) >= 0) {
+                s_rssi_warn_log_at_ms = now + (uint32_t)WIFI_RSSI_WARN_LOG_INTERVAL_MS;
+                LOGW("NET", "RSSI=%d dBm (%s); streaming may be affected\n",
+                     rssi, networkManager_rssiQualityName(quality));
+            }
+        } else {
+            // Reset warning timer when signal improves so next degradation logs promptly.
+            s_rssi_warn_log_at_ms = 0;
+        }
+    }
+
     if (!s_sta_connecting && s_has_credentials && WiFi.status() != WL_CONNECTED) {
         if (s_next_auto_reconnect_ms == 0) {
             s_next_auto_reconnect_ms = now + (uint32_t)WIFI_RECONNECT_INTERVAL_MS;
@@ -419,6 +473,11 @@ void networkManager_getStatus(NetworkStatusSnapshot* out) {
     out->ap_stop_scheduled = s_ap_stop_scheduled;
     out->wifi_status_code = (int)WiFi.status();
     out->rssi_dbm = out->sta_connected ? (int)WiFi.RSSI() : 0;
+    out->rssi_quality = classifyRssi(out->sta_connected, out->rssi_dbm);
+    out->rssi_streaming_warning = (out->rssi_quality == NETWORK_RSSI_WEAK ||
+                                   out->rssi_quality == NETWORK_RSSI_UNSTABLE);
+    out->rssi_warn_dbm     = (int)WIFI_RSSI_WARN_DBM;
+    out->rssi_unstable_dbm = (int)WIFI_RSSI_UNSTABLE_DBM;
 
     copyString(out->saved_ssid, sizeof(out->saved_ssid), s_saved_ssid);
     copyString(out->connected_ssid, sizeof(out->connected_ssid),
@@ -520,7 +579,7 @@ int networkManager_writeStatusJson(char* out, size_t out_sz) {
     networkManager_getStatus(&s);
 
     String json;
-    json.reserve(720);
+    json.reserve(900);
     json += "{\"has_credentials\":"; json += s.has_credentials ? "true" : "false";
     json += ",\"sta_connected\":"; json += s.sta_connected ? "true" : "false";
     json += ",\"sta_connecting\":"; json += s.sta_connecting ? "true" : "false";
@@ -537,6 +596,12 @@ int networkManager_writeStatusJson(char* out, size_t out_sz) {
     } else {
         json += ",\"rssi_dbm\":null";
     }
+    json += ",\"rssi_quality\":\"";
+    json += networkManager_rssiQualityName(s.rssi_quality);
+    json += "\"";
+    json += ",\"rssi_streaming_warning\":"; json += s.rssi_streaming_warning ? "true" : "false";
+    json += ",\"rssi_warn_dbm\":"; json += String(s.rssi_warn_dbm);
+    json += ",\"rssi_unstable_dbm\":"; json += String(s.rssi_unstable_dbm);
     json += ",\"sta_mac\":\""; json += jsonEscape(s.sta_mac); json += "\"";
     json += ",\"ap_mac\":\""; json += jsonEscape(s.ap_mac); json += "\"";
     json += ",\"last_error\":\""; json += jsonEscape(s.last_error); json += "\"";

@@ -1,0 +1,897 @@
+
+Date,Time,Level,Host Name,Category,Program,Messages
+2026-05-12,17:19:22,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,17:19:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=3068s heap=77208/45736 net=sta rssi=-57 stream=rtsp drops=14844 i2serr=0
+2026-05-12,17:19:01,Info,192.168.1.53,local0,BirdMic,[NET] setup AP stopped after successful STA connection
+2026-05-12,17:19:01,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 13 (enum=52)
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=629013218
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,17:18:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,17:18:36,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #14100 (ring buffer full)
+2026-05-12,17:18:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=3008s heap=77284/45744 net=sta rssi=-58 stream=none drops=12973 i2serr=0
+2026-05-12,17:18:06,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #12693 (ring buffer full)
+2026-05-12,17:17:36,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #11287 (ring buffer full)
+2026-05-12,17:17:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2948s heap=76836/45744 net=sta rssi=-61 stream=none drops=10160 i2serr=0
+2026-05-12,17:17:06,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #9880 (ring buffer full)
+2026-05-12,17:17:01,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,17:17:01,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-57
+2026-05-12,17:16:31,Info,192.168.1.53,local0,BirdMic,[NET] connecting STA to SSID='Antenne 5G-COVID'
+2026-05-12,17:16:31,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 13 (enum=52)
+2026-05-12,17:16:30,Info,192.168.1.53,local0,BirdMic,[NET] STA reconnect scheduled
+2026-05-12,17:16:30,Info,192.168.1.53,local0,BirdMic,[NET] STA reconnect scheduled
+2026-05-12,17:16:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2888s heap=73616/45744 net=sta rssi=-68 stream=rtsp drops=8266 i2serr=0
+2026-05-12,17:16:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=95
+2026-05-12,17:16:06,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8218 (ring buffer full)
+2026-05-12,17:15:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=94
+2026-05-12,17:15:34,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8158 (ring buffer full)
+2026-05-12,17:15:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2828s heap=73504/45744 net=sta rssi=-66 stream=rtsp drops=8157 i2serr=0
+2026-05-12,17:15:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=93
+2026-05-12,17:14:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=92
+2026-05-12,17:14:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2768s heap=75192/45744 net=sta rssi=-67 stream=rtsp drops=8157 i2serr=0
+2026-05-12,17:14:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=91
+2026-05-12,17:13:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=90
+2026-05-12,17:13:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2708s heap=69336/45744 net=sta rssi=-67 stream=rtsp drops=8157 i2serr=0
+2026-05-12,17:13:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=89
+2026-05-12,17:12:53,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8087 (ring buffer full)
+2026-05-12,17:12:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=88
+2026-05-12,17:12:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2648s heap=76568/45744 net=sta rssi=-66 stream=rtsp drops=8086 i2serr=0
+2026-05-12,17:12:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=87
+2026-05-12,17:11:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=86
+2026-05-12,17:11:14,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8078 (ring buffer full)
+2026-05-12,17:11:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2588s heap=78360/45832 net=sta rssi=-65 stream=rtsp drops=8077 i2serr=0
+2026-05-12,17:11:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=85
+2026-05-12,17:10:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=84
+2026-05-12,17:10:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2528s heap=73068/45832 net=sta rssi=-65 stream=rtsp drops=8077 i2serr=0
+2026-05-12,17:10:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=83
+2026-05-12,17:09:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8070 (ring buffer full)
+2026-05-12,17:09:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=82
+2026-05-12,17:09:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2468s heap=76568/45832 net=sta rssi=-64 stream=rtsp drops=8069 i2serr=0
+2026-05-12,17:09:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=81
+2026-05-12,17:08:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=80
+2026-05-12,17:08:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2408s heap=73552/45832 net=sta rssi=-67 stream=rtsp drops=8069 i2serr=0
+2026-05-12,17:08:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=79
+2026-05-12,17:08:03,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7953 (ring buffer full)
+2026-05-12,17:07:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=78
+2026-05-12,17:07:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2348s heap=75192/45832 net=sta rssi=-66 stream=rtsp drops=7952 i2serr=0
+2026-05-12,17:07:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=77
+2026-05-12,17:06:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=76
+2026-05-12,17:06:27,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7941 (ring buffer full)
+2026-05-12,17:06:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2288s heap=76672/45832 net=sta rssi=-66 stream=rtsp drops=7940 i2serr=0
+2026-05-12,17:06:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=75
+2026-05-12,17:05:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=74
+2026-05-12,17:05:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2228s heap=76684/45832 net=sta rssi=-64 stream=rtsp drops=7940 i2serr=0
+2026-05-12,17:05:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=73
+2026-05-12,17:04:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7936 (ring buffer full)
+2026-05-12,17:04:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=72
+2026-05-12,17:04:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2168s heap=71392/45832 net=sta rssi=-66 stream=rtsp drops=7935 i2serr=0
+2026-05-12,17:04:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=71
+2026-05-12,17:03:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=70
+2026-05-12,17:03:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2108s heap=75096/45832 net=sta rssi=-64 stream=rtsp drops=7935 i2serr=0
+2026-05-12,17:03:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=69
+2026-05-12,17:03:07,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7870 (ring buffer full)
+2026-05-12,17:02:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=68
+2026-05-12,17:02:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2048s heap=76568/45832 net=sta rssi=-66 stream=rtsp drops=7869 i2serr=0
+2026-05-12,17:02:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=67
+2026-05-12,17:01:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=66
+2026-05-12,17:01:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1988s heap=74652/45832 net=sta rssi=-63 stream=rtsp drops=7869 i2serr=0
+2026-05-12,17:01:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=65
+2026-05-12,17:00:55,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7834 (ring buffer full)
+2026-05-12,17:00:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=64
+2026-05-12,17:00:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1928s heap=75192/45832 net=sta rssi=-67 stream=rtsp drops=7832 i2serr=0
+2026-05-12,17:00:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=63
+2026-05-12,16:59:53,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7831 (ring buffer full)
+2026-05-12,16:59:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=62
+2026-05-12,16:59:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1868s heap=76776/45832 net=sta rssi=-67 stream=rtsp drops=7830 i2serr=0
+2026-05-12,16:59:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=61
+2026-05-12,16:58:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=60
+2026-05-12,16:58:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1808s heap=71956/45832 net=sta rssi=-66 stream=rtsp drops=7830 i2serr=0
+2026-05-12,16:58:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=59
+2026-05-12,16:57:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=58
+2026-05-12,16:57:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1748s heap=76664/45832 net=sta rssi=-67 stream=rtsp drops=7830 i2serr=0
+2026-05-12,16:57:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=57
+2026-05-12,16:56:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=56
+2026-05-12,16:56:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1688s heap=76176/45832 net=sta rssi=-65 stream=rtsp drops=7826 i2serr=0
+2026-05-12,16:56:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=55
+2026-05-12,16:55:50,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7817 (ring buffer full)
+2026-05-12,16:55:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=54
+2026-05-12,16:55:16,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7796 (ring buffer full)
+2026-05-12,16:55:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1628s heap=69252/45832 net=sta rssi=-68 stream=rtsp drops=7795 i2serr=0
+2026-05-12,16:55:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=53
+2026-05-12,16:54:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=52
+2026-05-12,16:54:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1568s heap=70652/45832 net=sta rssi=-64 stream=rtsp drops=7795 i2serr=0
+2026-05-12,16:54:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=51
+2026-05-12,16:53:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=50
+2026-05-12,16:53:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1508s heap=69472/45832 net=sta rssi=-65 stream=rtsp drops=7795 i2serr=0
+2026-05-12,16:53:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=49
+2026-05-12,16:52:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=48
+2026-05-12,16:52:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1448s heap=72740/45880 net=sta rssi=-65 stream=rtsp drops=7795 i2serr=0
+2026-05-12,16:52:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=47
+2026-05-12,16:51:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7750 (ring buffer full)
+2026-05-12,16:51:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=46
+2026-05-12,16:51:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1388s heap=70284/45920 net=sta rssi=-65 stream=rtsp drops=7687 i2serr=0
+2026-05-12,16:51:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=45
+2026-05-12,16:50:57,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7660 (ring buffer full)
+2026-05-12,16:50:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=44
+2026-05-12,16:50:26,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7621 (ring buffer full)
+2026-05-12,16:50:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1328s heap=77216/45920 net=sta rssi=-65 stream=rtsp drops=7592 i2serr=0
+2026-05-12,16:50:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=43
+2026-05-12,16:49:56,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7515 (ring buffer full)
+2026-05-12,16:49:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=42
+2026-05-12,16:49:18,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7481 (ring buffer full)
+2026-05-12,16:49:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1268s heap=78216/45920 net=sta rssi=-64 stream=rtsp drops=7480 i2serr=0
+2026-05-12,16:49:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=41
+2026-05-12,16:48:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=40
+2026-05-12,16:48:31,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7456 (ring buffer full)
+2026-05-12,16:48:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1208s heap=63376/45932 net=sta rssi=-64 stream=rtsp drops=7455 i2serr=0
+2026-05-12,16:48:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=39
+2026-05-12,16:47:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=38
+2026-05-12,16:47:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1148s heap=76664/45932 net=sta rssi=-64 stream=rtsp drops=7455 i2serr=0
+2026-05-12,16:47:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=37
+2026-05-12,16:46:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=36
+2026-05-12,16:46:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1088s heap=78360/45932 net=sta rssi=-66 stream=rtsp drops=7455 i2serr=0
+2026-05-12,16:46:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=35
+2026-05-12,16:45:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=34
+2026-05-12,16:45:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1028s heap=70180/45932 net=sta rssi=-66 stream=rtsp drops=7455 i2serr=0
+2026-05-12,16:45:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=33
+2026-05-12,16:44:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=32
+2026-05-12,16:44:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=968s heap=76564/45932 net=sta rssi=-63 stream=rtsp drops=7455 i2serr=0
+2026-05-12,16:44:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=31
+2026-05-12,16:43:57,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7418 (ring buffer full)
+2026-05-12,16:43:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=30
+2026-05-12,16:43:26,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7380 (ring buffer full)
+2026-05-12,16:43:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=908s heap=78360/45932 net=sta rssi=-65 stream=rtsp drops=7379 i2serr=0
+2026-05-12,16:43:07,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=29
+2026-05-12,16:42:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=28
+2026-05-12,16:42:12,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7370 (ring buffer full)
+2026-05-12,16:42:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=848s heap=62968/45932 net=sta rssi=-65 stream=rtsp drops=7369 i2serr=0
+2026-05-12,16:42:06,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=27
+2026-05-12,16:41:36,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=26
+2026-05-12,16:41:21,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7368 (ring buffer full)
+2026-05-12,16:41:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=788s heap=76780/45932 net=sta rssi=-64 stream=rtsp drops=7367 i2serr=0
+2026-05-12,16:41:06,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=25
+2026-05-12,16:40:50,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7338 (ring buffer full)
+2026-05-12,16:40:36,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=24
+2026-05-12,16:40:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=728s heap=70300/45932 net=sta rssi=-67 stream=rtsp drops=7313 i2serr=0
+2026-05-12,16:40:06,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=23
+2026-05-12,16:40:05,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7309 (ring buffer full)
+2026-05-12,16:39:35,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=22
+2026-05-12,16:39:16,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7247 (ring buffer full)
+2026-05-12,16:39:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=668s heap=78248/45932 net=sta rssi=-64 stream=rtsp drops=7246 i2serr=0
+2026-05-12,16:39:05,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=21
+2026-05-12,16:38:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7163 (ring buffer full)
+2026-05-12,16:38:35,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=20
+2026-05-12,16:38:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=608s heap=75188/45932 net=sta rssi=-65 stream=rtsp drops=7128 i2serr=0
+2026-05-12,16:38:11,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7122 (ring buffer full)
+2026-05-12,16:38:05,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=19
+2026-05-12,16:37:35,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=18
+2026-05-12,16:37:30,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7085 (ring buffer full)
+2026-05-12,16:37:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=548s heap=76468/45932 net=sta rssi=-67 stream=rtsp drops=7080 i2serr=0
+2026-05-12,16:37:05,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=17
+2026-05-12,16:36:57,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7065 (ring buffer full)
+2026-05-12,16:36:35,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=16
+2026-05-12,16:36:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7064 (ring buffer full)
+2026-05-12,16:36:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=488s heap=76576/45984 net=sta rssi=-64 stream=rtsp drops=7063 i2serr=0
+2026-05-12,16:36:05,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=15
+2026-05-12,16:35:37,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6977 (ring buffer full)
+2026-05-12,16:35:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=14
+2026-05-12,16:35:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=428s heap=73028/46156 net=sta rssi=-67 stream=rtsp drops=6970 i2serr=0
+2026-05-12,16:35:04,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=13
+2026-05-12,16:34:59,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6890 (ring buffer full)
+2026-05-12,16:34:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,16:34:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=368s heap=66168/46156 net=sta rssi=-64 stream=rtsp drops=6889 i2serr=0
+2026-05-12,16:34:04,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,16:33:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6847 (ring buffer full)
+2026-05-12,16:33:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,16:33:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=308s heap=62572/46156 net=sta rssi=-64 stream=rtsp drops=6819 i2serr=0
+2026-05-12,16:33:06,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6792 (ring buffer full)
+2026-05-12,16:33:04,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,16:32:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,16:32:33,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6771 (ring buffer full)
+2026-05-12,16:32:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=248s heap=75676/46228 net=sta rssi=-65 stream=rtsp drops=6770 i2serr=0
+2026-05-12,16:32:04,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,16:31:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6688 (ring buffer full)
+2026-05-12,16:31:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,16:31:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=188s heap=76460/47136 net=sta rssi=-64 stream=rtsp drops=6687 i2serr=0
+2026-05-12,16:31:04,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,16:30:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6626 (ring buffer full)
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=662744187
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 100352 stale bytes before PLAY
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,16:30:34,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,16:30:13,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #5628 (ring buffer full)
+2026-05-12,16:30:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=128s heap=80296/52256 net=sta rssi=-64 stream=none drops=5579 i2serr=0
+2026-05-12,16:29:43,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4221 (ring buffer full)
+2026-05-12,16:29:13,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2815 (ring buffer full)
+2026-05-12,16:29:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=68s heap=80288/52256 net=sta rssi=-64 stream=none drops=2767 i2serr=0
+2026-05-12,16:28:43,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1408 (ring buffer full)
+2026-05-12,16:28:24,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept 44232 sec. Continuing.
+2026-05-12,16:28:13,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1 (ring buffer full)
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=8s heap=71196/67892 net=sta rssi=-64 stream=none drops=0 i2serr=0
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,[SS] RTSP server started on :8554
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,[MAIN] Normal services started; audio stream available on :81/stream
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,"[SS] RTSP server task created (core 0, prio 5)"
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,"[SS] Stream server task created (core 0, prio 5)"
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: disabled, fc=100 Hz (a_q15=32342)"
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Night after NTP; scheduling deep sleep until next dawn (1778661936)
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,"[SCHED] [SCHED] Recomputed dawn/dusk. today: 1778575622/1778546831, tomorrow: 1778661936/1778633316"
+2026-05-12,16:28:12,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync ok: 1778617692
+2026-05-12,16:28:09,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync starting...
+2026-05-12,16:28:09,Info,192.168.1.53,local0,BirdMic,[OTA] OtaManager initialised
+2026-05-12,16:28:09,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,16:28:09,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,16:28:09,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-64
+2026-05-12,16:27:59,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,16:27:40,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2223s heap=66980/45736 net=sta rssi=-55 stream=rtsp drops=37360 i2serr=0
+2026-05-12,16:27:31,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #37359 (ring buffer full)
+2026-05-12,16:27:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,16:27:01,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #37147 (ring buffer full)
+2026-05-12,16:27:01,Info,192.168.1.53,local0,BirdMic,[NET] setup AP stopped after successful STA connection
+2026-05-12,16:27:01,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 13 (enum=52)
+2026-05-12,16:26:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,16:26:40,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2163s heap=62600/45736 net=sta rssi=-55 stream=rtsp drops=36906 i2serr=0
+2026-05-12,16:26:28,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #36653 (ring buffer full)
+2026-05-12,16:26:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,16:25:57,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #36466 (ring buffer full)
+2026-05-12,16:25:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,16:25:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2103s heap=69220/45736 net=sta rssi=-57 stream=rtsp drops=36390 i2serr=0
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=529016258
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,16:25:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,16:25:16,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #35822 (ring buffer full)
+2026-05-12,16:25:01,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,16:25:01,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-55
+2026-05-12,16:21:49,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=26
+2026-05-12,16:21:46,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #26614 (ring buffer full)
+2026-05-12,16:21:40,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1863s heap=68324/45736 net=sta rssi=-50 stream=rtsp drops=26440 i2serr=0
+2026-05-12,16:21:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=25
+2026-05-12,16:21:16,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #26295 (ring buffer full)
+2026-05-12,16:20:49,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=24
+2026-05-12,16:20:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1803s heap=76676/45736 net=sta rssi=-54 stream=rtsp drops=26174 i2serr=0
+2026-05-12,16:20:31,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #26047 (ring buffer full)
+2026-05-12,16:20:20,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=23
+2026-05-12,16:19:57,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #25956 (ring buffer full)
+2026-05-12,16:19:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=22
+2026-05-12,16:19:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1743s heap=65432/45736 net=sta rssi=-53 stream=rtsp drops=25819 i2serr=0
+2026-05-12,16:19:26,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #25662 (ring buffer full)
+2026-05-12,16:19:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=21
+2026-05-12,16:18:50,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #25362 (ring buffer full)
+2026-05-12,16:18:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=20
+2026-05-12,16:18:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1683s heap=68612/45736 net=sta rssi=-52 stream=rtsp drops=25343 i2serr=0
+2026-05-12,16:18:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=19
+2026-05-12,16:18:13,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #25048 (ring buffer full)
+2026-05-12,16:17:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=18
+2026-05-12,16:17:43,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #24777 (ring buffer full)
+2026-05-12,16:17:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1623s heap=72540/45736 net=sta rssi=-53 stream=rtsp drops=24776 i2serr=0
+2026-05-12,16:17:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=17
+2026-05-12,16:17:07,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #24519 (ring buffer full)
+2026-05-12,16:16:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=16
+2026-05-12,16:16:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1563s heap=71792/45736 net=sta rssi=-51 stream=rtsp drops=24210 i2serr=0
+2026-05-12,16:16:37,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #24091 (ring buffer full)
+2026-05-12,16:16:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=15
+2026-05-12,16:15:56,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #23816 (ring buffer full)
+2026-05-12,16:15:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=14
+2026-05-12,16:15:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1503s heap=67104/45800 net=sta rssi=-49 stream=rtsp drops=23815 i2serr=0
+2026-05-12,16:15:22,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #23746 (ring buffer full)
+2026-05-12,16:15:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=13
+2026-05-12,16:14:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,16:14:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1443s heap=76680/45800 net=sta rssi=-52 stream=rtsp drops=23478 i2serr=0
+2026-05-12,16:14:35,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #23403 (ring buffer full)
+2026-05-12,16:14:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,16:14:03,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #23295 (ring buffer full)
+2026-05-12,16:13:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,16:13:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1383s heap=74760/45832 net=sta rssi=-51 stream=rtsp drops=23026 i2serr=0
+2026-05-12,16:13:30,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #22917 (ring buffer full)
+2026-05-12,16:13:21,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,16:12:55,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #22734 (ring buffer full)
+2026-05-12,16:12:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,16:12:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1323s heap=76676/45832 net=sta rssi=-55 stream=rtsp drops=22640 i2serr=0
+2026-05-12,16:12:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #22500 (ring buffer full)
+2026-05-12,16:12:21,Info,192.168.1.53,local0,BirdMic,[NET] setup AP stopped after successful STA connection
+2026-05-12,16:12:21,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 13 (enum=52)
+2026-05-12,16:12:17,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,16:11:53,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #22125 (ring buffer full)
+2026-05-12,16:11:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,16:11:40,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1263s heap=63008/45936 net=sta rssi=-54 stream=rtsp drops=21981 i2serr=0
+2026-05-12,16:11:23,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #21847 (ring buffer full)
+2026-05-12,16:11:17,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=131574715
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 100352 stale bytes before PLAY
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,16:10:47,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,16:10:40,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1203s heap=76336/45948 net=sta rssi=-60 stream=none drops=21362 i2serr=0
+2026-05-12,16:10:21,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #20751 (ring buffer full)
+2026-05-12,16:10:21,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,16:10:21,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-52
+2026-05-12,16:09:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1143s heap=76668/45948 net=sta rssi=-71 stream=none drops=18550 i2serr=0
+2026-05-12,16:09:26,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #17938 (ring buffer full)
+2026-05-12,16:08:57,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,16:08:57,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-71
+2026-05-12,16:08:10,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,16:07:47,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #15117 (ring buffer full)
+2026-05-12,16:07:40,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=449420459
+2026-05-12,16:07:40,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,16:07:40,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,16:07:40,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,16:07:40,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,16:07:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1023s heap=69000/45948 net=sta rssi=-58 stream=rtsp drops=15070 i2serr=0
+2026-05-12,16:07:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,16:07:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,16:07:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,16:07:38,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,16:07:38,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-59
+2026-05-12,16:05:17,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8413 (ring buffer full)
+2026-05-12,16:05:01,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,16:04:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=843s heap=71696/45948 net=sta rssi=-55 stream=rtsp drops=8412 i2serr=0
+2026-05-12,16:04:34,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8407 (ring buffer full)
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=204116282
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,16:04:31,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,16:04:13,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,16:04:13,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-54
+2026-05-12,16:03:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=783s heap=76760/45948 net=sta rssi=-72 stream=none drops=6000 i2serr=0
+2026-05-12,16:03:33,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #5693 (ring buffer full)
+2026-05-12,16:03:29,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,16:03:29,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-71
+2026-05-12,16:02:59,Info,192.168.1.53,local0,BirdMic,[NET] STA reconnect scheduled
+2026-05-12,16:02:59,Info,192.168.1.53,local0,BirdMic,[NET] saved Wi-Fi credentials for SSID='Antenne 5G-COVID'
+2026-05-12,16:02:40,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=25
+2026-05-12,16:02:40,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=723s heap=64168/45948 net=sta rssi=-65 stream=rtsp drops=4141 i2serr=0
+2026-05-12,16:02:33,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3915 (ring buffer full)
+2026-05-12,16:02:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=24
+2026-05-12,16:01:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=23
+2026-05-12,16:01:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=663s heap=75836/46572 net=sta rssi=-60 stream=rtsp drops=3914 i2serr=0
+2026-05-12,16:01:28,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3838 (ring buffer full)
+2026-05-12,16:01:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=22
+2026-05-12,16:00:50,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3828 (ring buffer full)
+2026-05-12,16:00:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=21
+2026-05-12,16:00:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=603s heap=73132/46572 net=sta rssi=-59 stream=rtsp drops=3827 i2serr=0
+2026-05-12,16:00:15,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3788 (ring buffer full)
+2026-05-12,16:00:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=20
+2026-05-12,15:59:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=19
+2026-05-12,15:59:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=543s heap=67656/46572 net=sta rssi=-57 stream=rtsp drops=3787 i2serr=0
+2026-05-12,15:59:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=18
+2026-05-12,15:58:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=17
+2026-05-12,15:58:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=483s heap=72636/46716 net=sta rssi=-54 stream=rtsp drops=3787 i2serr=0
+2026-05-12,15:58:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=16
+2026-05-12,15:57:57,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3725 (ring buffer full)
+2026-05-12,15:57:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=15
+2026-05-12,15:57:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=423s heap=68952/46716 net=sta rssi=-58 stream=rtsp drops=3724 i2serr=0
+2026-05-12,15:57:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=14
+2026-05-12,15:56:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=13
+2026-05-12,15:56:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=363s heap=80052/46716 net=sta rssi=-57 stream=rtsp drops=3724 i2serr=0
+2026-05-12,15:56:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,15:55:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,15:55:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=303s heap=81508/46880 net=sta rssi=-56 stream=rtsp drops=3724 i2serr=0
+2026-05-12,15:55:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,15:54:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3693 (ring buffer full)
+2026-05-12,15:54:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,15:54:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=243s heap=76012/46880 net=sta rssi=-56 stream=rtsp drops=3692 i2serr=0
+2026-05-12,15:54:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,15:53:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,15:53:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=183s heap=78012/46976 net=sta rssi=-59 stream=rtsp drops=3692 i2serr=0
+2026-05-12,15:53:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,15:53:05,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3667 (ring buffer full)
+2026-05-12,15:52:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,15:52:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=123s heap=79804/47920 net=sta rssi=-58 stream=rtsp drops=3666 i2serr=0
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=879307506
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,15:52:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,15:51:43,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2452 (ring buffer full)
+2026-05-12,15:51:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=63s heap=83640/55708 net=sta rssi=-57 stream=none drops=2251 i2serr=0
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=841234518
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,15:51:02,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,15:50:56,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept 46480 sec. Continuing.
+2026-05-12,15:50:40,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1 (ring buffer full)
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=3s heap=80500/78596 net=sta rssi=-65 stream=none drops=0 i2serr=0
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,[MAIN] Normal services started; audio stream available on :81/stream
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,[SS] RTSP server started on :8554
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,"[SS] RTSP server task created (core 0, prio 5)"
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,"[SS] Stream server task created (core 0, prio 5)"
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: disabled, fc=100 Hz (a_q15=32342)"
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Night after NTP; scheduling deep sleep until next dawn (1778661936)
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,"[SCHED] [SCHED] Recomputed dawn/dusk. today: 1778575622/1778546831, tomorrow: 1778661936/1778633316"
+2026-05-12,15:50:39,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync ok: 1778615439
+2026-05-12,15:50:37,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync starting...
+2026-05-12,15:50:37,Info,192.168.1.53,local0,BirdMic,[OTA] OtaManager initialised
+2026-05-12,15:50:37,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,15:50:37,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,15:50:37,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-66
+2026-05-12,15:43:40,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm set to 13
+2026-05-12,15:43:40,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 13 (enum=52)
+2026-05-12,15:43:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2222s heap=73088/45628 net=sta rssi=-58 stream=rtsp drops=6842 i2serr=0
+2026-05-12,15:43:28,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=17
+2026-05-12,15:43:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6827 (ring buffer full)
+2026-05-12,15:42:58,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=16
+2026-05-12,15:42:39,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6816 (ring buffer full)
+2026-05-12,15:42:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2162s heap=58980/45628 net=sta rssi=-57 stream=rtsp drops=6815 i2serr=0
+2026-05-12,15:42:28,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=15
+2026-05-12,15:42:00,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6808 (ring buffer full)
+2026-05-12,15:41:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=14
+2026-05-12,15:41:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2102s heap=68280/45628 net=sta rssi=-54 stream=rtsp drops=6807 i2serr=0
+2026-05-12,15:41:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=13
+2026-05-12,15:41:13,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6775 (ring buffer full)
+2026-05-12,15:40:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,15:40:39,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6663 (ring buffer full)
+2026-05-12,15:40:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2042s heap=69612/45628 net=sta rssi=-52 stream=rtsp drops=6662 i2serr=0
+2026-05-12,15:40:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,15:39:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,15:39:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1982s heap=70632/45628 net=sta rssi=-52 stream=rtsp drops=6662 i2serr=0
+2026-05-12,15:39:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,15:39:07,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6657 (ring buffer full)
+2026-05-12,15:38:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,15:38:51,Info,192.168.1.53,local0,BirdMic,[NET] setup AP stopped after successful STA connection
+2026-05-12,15:38:51,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 15 (enum=60)
+2026-05-12,15:38:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1922s heap=68504/45628 net=sta rssi=-56 stream=rtsp drops=6656 i2serr=0
+2026-05-12,15:38:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,15:37:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,15:37:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1862s heap=62964/45628 net=sta rssi=-53 stream=rtsp drops=6656 i2serr=0
+2026-05-12,15:37:29,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6632 (ring buffer full)
+2026-05-12,15:37:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=573318039
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 100352 stale bytes before PLAY
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,15:36:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,15:36:52,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6403 (ring buffer full)
+2026-05-12,15:36:52,Info,192.168.1.53,local0,BirdMic,[NET] setup AP will stop in 120000 ms
+2026-05-12,15:36:52,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: SSID='Antenne 5G-COVID' IP=192.168.1.53 RSSI=-56
+2026-05-12,15:36:21,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 15 (enum=60)
+2026-05-12,15:36:21,Info,192.168.1.53,local0,BirdMic,[NET] STA reconnect scheduled
+2026-05-12,15:36:21,Info,192.168.1.53,local0,BirdMic,[NET] saved Wi-Fi credentials for SSID='Antenne 5G-COVID'
+2026-05-12,15:36:15,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=13
+2026-05-12,15:35:50,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4761 (ring buffer full)
+2026-05-12,15:35:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,15:35:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1742s heap=70460/45652 net=sta rssi=-61 stream=rtsp drops=4760 i2serr=0
+2026-05-12,15:35:30,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm set to 15
+2026-05-12,15:35:30,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 15 (enum=60)
+2026-05-12,15:35:15,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,15:35:02,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm set to 13
+2026-05-12,15:35:02,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 13 (enum=52)
+2026-05-12,15:34:50,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm set to 12
+2026-05-12,15:34:50,Info,192.168.1.53,local0,BirdMic,[RT] wifi_tx_power_dbm applied: 12 (enum=44)
+2026-05-12,15:34:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,15:34:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1682s heap=63640/45652 net=sta rssi=-61 stream=rtsp drops=4760 i2serr=0
+2026-05-12,15:34:15,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,15:34:15,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4733 (ring buffer full)
+2026-05-12,15:33:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,15:33:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1622s heap=68556/45652 net=sta rssi=-62 stream=rtsp drops=4732 i2serr=0
+2026-05-12,15:33:15,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,15:33:10,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4707 (ring buffer full)
+2026-05-12,15:32:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,15:32:40,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4690 (ring buffer full)
+2026-05-12,15:32:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1562s heap=67292/45688 net=sta rssi=-57 stream=rtsp drops=4578 i2serr=0
+2026-05-12,15:32:15,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,15:32:10,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4575 (ring buffer full)
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=577439407
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,15:31:45,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,15:31:43,Info,192.168.1.53,local0,BirdMic,[SS] RTSP session ended: client=192.168.1.43 reason=write_stall tx_bytes=77982912 duration_ms=828641
+2026-05-12,15:31:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1502s heap=68644/45688 net=sta rssi=-60 stream=rtsp drops=4477 i2serr=0
+2026-05-12,15:31:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=31
+2026-05-12,15:31:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4466 (ring buffer full)
+2026-05-12,15:30:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=30
+2026-05-12,15:30:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4448 (ring buffer full)
+2026-05-12,15:30:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1442s heap=63008/45688 net=sta rssi=-61 stream=rtsp drops=4447 i2serr=0
+2026-05-12,15:30:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=29
+2026-05-12,15:29:57,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=28
+2026-05-12,15:29:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1382s heap=63724/45688 net=sta rssi=-58 stream=rtsp drops=4435 i2serr=0
+2026-05-12,15:29:27,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=27
+2026-05-12,15:29:25,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4342 (ring buffer full)
+2026-05-12,15:28:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=26
+2026-05-12,15:28:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1322s heap=69088/45688 net=sta rssi=-74 stream=rtsp drops=4341 i2serr=0
+2026-05-12,15:28:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=25
+2026-05-12,15:27:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=24
+2026-05-12,15:27:40,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4270 (ring buffer full)
+2026-05-12,15:27:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1262s heap=55564/45688 net=sta rssi=-70 stream=rtsp drops=4269 i2serr=0
+2026-05-12,15:27:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=23
+2026-05-12,15:26:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=22
+2026-05-12,15:26:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1202s heap=63604/45720 net=sta rssi=-57 stream=rtsp drops=4269 i2serr=0
+2026-05-12,15:26:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=21
+2026-05-12,15:26:13,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4243 (ring buffer full)
+2026-05-12,15:25:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=20
+2026-05-12,15:25:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1142s heap=72252/45720 net=sta rssi=-60 stream=rtsp drops=4242 i2serr=0
+2026-05-12,15:25:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=19
+2026-05-12,15:24:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=18
+2026-05-12,15:24:36,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4239 (ring buffer full)
+2026-05-12,15:24:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1082s heap=65588/45720 net=sta rssi=-59 stream=rtsp drops=4238 i2serr=0
+2026-05-12,15:24:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=17
+2026-05-12,15:23:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=16
+2026-05-12,15:23:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1022s heap=63376/45720 net=sta rssi=-64 stream=rtsp drops=4238 i2serr=0
+2026-05-12,15:23:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=15
+2026-05-12,15:22:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=14
+2026-05-12,15:22:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=962s heap=55084/45812 net=sta rssi=-58 stream=rtsp drops=4238 i2serr=0
+2026-05-12,15:22:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=13
+2026-05-12,15:21:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,15:21:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=902s heap=66360/45812 net=sta rssi=-58 stream=rtsp drops=4238 i2serr=0
+2026-05-12,15:21:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,15:21:22,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4234 (ring buffer full)
+2026-05-12,15:20:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,15:20:37,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4151 (ring buffer full)
+2026-05-12,15:20:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=842s heap=67176/45812 net=sta rssi=-53 stream=rtsp drops=4150 i2serr=0
+2026-05-12,15:20:25,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,15:19:55,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,15:19:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=782s heap=66852/45812 net=sta rssi=-56 stream=rtsp drops=4150 i2serr=0
+2026-05-12,15:19:24,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,15:18:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,15:18:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=722s heap=70332/45812 net=sta rssi=-55 stream=rtsp drops=4150 i2serr=0
+2026-05-12,15:18:24,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=150467658
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,15:17:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,15:17:37,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3348 (ring buffer full)
+2026-05-12,15:17:36,Info,192.168.1.53,local0,BirdMic,[SS] RTSP session ended: client=192.168.1.43 reason=write_stall tx_bytes=23505088 duration_ms=257729
+2026-05-12,15:17:36,Warning,192.168.1.53,local0,BirdMic,"[SS] RTSP: write failed, closing client"
+2026-05-12,15:17:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=662s heap=70440/45812 net=sta rssi=-52 stream=rtsp drops=3347 i2serr=0
+2026-05-12,15:17:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,15:16:49,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,15:16:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=602s heap=72164/45972 net=sta rssi=-54 stream=rtsp drops=3347 i2serr=0
+2026-05-12,15:16:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,15:16:14,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3220 (ring buffer full)
+2026-05-12,15:15:49,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,15:15:44,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2943 (ring buffer full)
+2026-05-12,15:15:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=542s heap=66964/46160 net=sta rssi=-53 stream=rtsp drops=2942 i2serr=0
+2026-05-12,15:15:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,15:15:12,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2926 (ring buffer full)
+2026-05-12,15:14:49,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,15:14:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=482s heap=70188/46160 net=sta rssi=-55 stream=rtsp drops=2924 i2serr=0
+2026-05-12,15:14:28,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2872 (ring buffer full)
+2026-05-12,15:14:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,15:13:49,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,15:13:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=422s heap=67740/46160 net=sta rssi=-52 stream=rtsp drops=2871 i2serr=0
+2026-05-12,15:13:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=252862427
+2026-05-12,15:13:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,15:13:19,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,15:13:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,15:13:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,15:13:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,15:13:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,15:13:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,15:13:12,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2558 (ring buffer full)
+2026-05-12,15:13:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP session ended: client=192.168.1.43 reason=write_stall tx_bytes=29562736 duration_ms=316579
+2026-05-12,15:13:09,Warning,192.168.1.53,local0,BirdMic,"[SS] RTSP: write failed, closing client"
+2026-05-12,15:12:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=14
+2026-05-12,15:12:42,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2441 (ring buffer full)
+2026-05-12,15:12:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=362s heap=69320/46160 net=sta rssi=-49 stream=rtsp drops=2440 i2serr=0
+2026-05-12,15:12:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=13
+2026-05-12,15:11:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=12
+2026-05-12,15:11:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=302s heap=65912/46240 net=sta rssi=-50 stream=rtsp drops=2440 i2serr=0
+2026-05-12,15:11:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=11
+2026-05-12,15:10:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=10
+2026-05-12,15:10:48,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2405 (ring buffer full)
+2026-05-12,15:10:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=242s heap=62852/46240 net=sta rssi=-52 stream=rtsp drops=2404 i2serr=0
+2026-05-12,15:10:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=9
+2026-05-12,15:10:16,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2351 (ring buffer full)
+2026-05-12,15:09:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=8
+2026-05-12,15:09:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=182s heap=66236/46260 net=sta rssi=-54 stream=rtsp drops=2346 i2serr=0
+2026-05-12,15:09:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,15:09:20,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2335 (ring buffer full)
+2026-05-12,15:08:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,15:08:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=122s heap=68840/46356 net=sta rssi=-55 stream=rtsp drops=2323 i2serr=0
+2026-05-12,15:08:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,15:08:13,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2322 (ring buffer full)
+2026-05-12,15:07:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=904791935
+2026-05-12,15:07:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,15:07:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,15:07:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,15:07:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,15:07:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,15:07:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,15:07:52,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,15:07:45,Info,192.168.1.53,local0,BirdMic,[SS] Stream session ended: reason=client_closed tx_bytes=1779712 duration_ms=18788 write_stalls=0
+2026-05-12,15:07:33,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1992 (ring buffer full)
+2026-05-12,15:07:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=62s heap=72408/46660 net=sta rssi=-52 stream=http drops=1991 i2serr=0
+2026-05-12,15:07:26,Info,192.168.1.53,local0,BirdMic,[SS] Stream: drained 98304 stale bytes before HTTP session
+2026-05-12,15:07:23,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,15:07:23,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,15:07:23,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,15:07:23,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,15:07:23,Info,192.168.1.53,local0,BirdMic,[AP] [AP] teardown complete
+2026-05-12,15:07:23,Info,192.168.1.53,local0,BirdMic,[AP] [AP] stop: drops=1894 i2s_err=0 clips=1697
+2026-05-12,15:07:23,Info,192.168.1.53,local0,BirdMic,[HC] restart-audio requested
+2026-05-12,15:07:14,Info,192.168.1.53,local0,BirdMic,[SS] Stream session ended: reason=client_closed tx_bytes=995328 duration_ms=10674 write_stalls=0
+2026-05-12,15:07:04,Info,192.168.1.53,local0,BirdMic,[SS] Stream: drained 98304 stale bytes before HTTP session
+2026-05-12,15:07:02,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1408 (ring buffer full)
+2026-05-12,15:06:48,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept 49128 sec. Continuing.
+2026-05-12,15:06:31,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1 (ring buffer full)
+2026-05-12,15:06:31,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=2s heap=76752/72640 net=sta rssi=-52 stream=none drops=0 i2serr=0
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,[MAIN] Normal services started; audio stream available on :81/stream
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,[SS] Stream server started on :81
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,"[SS] RTSP server task created (core 0, prio 5)"
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,"[SS] Stream server task created (core 0, prio 5)"
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: disabled, fc=100 Hz (a_q15=32342)"
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Night after NTP; scheduling deep sleep until next dawn (1778661936)
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,"[SCHED] [SCHED] Recomputed dawn/dusk. today: 1778575622/1778546831, tomorrow: 1778661936/1778633316"
+2026-05-12,15:06:30,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync ok: 1778612790
+2026-05-12,15:06:29,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync starting...
+2026-05-12,15:06:29,Info,192.168.1.53,local0,BirdMic,[OTA] OtaManager initialised
+2026-05-12,15:06:29,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Maintenance inhibit cleared
+2026-05-12,15:06:29,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,15:06:29,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,15:06:29,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-49
+2026-05-12,15:06:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #3361 (ring buffer full)
+2026-05-12,15:05:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1955 (ring buffer full)
+2026-05-12,15:05:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=61s heap=79880/49056 net=sta rssi=-54 stream=none drops=1905 i2serr=0
+2026-05-12,15:05:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #955 (ring buffer full)
+2026-05-12,15:05:14,Info,192.168.1.53,local0,BirdMic,[SS] Stream: drained 98304 stale bytes before HTTP session
+2026-05-12,15:05:12,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept 49224 sec. Continuing.
+2026-05-12,15:04:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1 (ring buffer full)
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP server started on :8554
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Normal services started; audio stream available on :81/stream
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[SS] Stream server started on :81
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,"[SS] Stream server task created (core 0, prio 5)"
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: disabled, fc=100 Hz (a_q15=32342)"
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Night after NTP; scheduling deep sleep until next dawn (1778661936)
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,"[SCHED] [SCHED] Recomputed dawn/dusk. today: 1778575622/1778546831, tomorrow: 1778661936/1778633316"
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync ok: 1778612693
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync starting...
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[OTA] OtaManager initialised
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,15:04:53,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-67
+2026-05-12,15:04:51,Info,192.168.1.53,local0,BirdMic,[OTA] Rebooting into new firmware
+2026-05-12,15:04:50,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=782s heap=191540/45728 net=sta rssi=-51 stream=none drops=26271 i2serr=0
+2026-05-12,15:04:50,Info,192.168.1.53,local0,BirdMic,[OTA] Update complete (921808 bytes); rebooting in 1500 ms
+2026-05-12,15:04:43,Info,192.168.1.53,local0,BirdMic,[OTA] Update.begin() ok; free slot 1572864 bytes
+2026-05-12,15:04:43,Info,192.168.1.53,local0,BirdMic,[OTA] Audio pipeline stopped for OTA
+2026-05-12,15:04:43,Info,192.168.1.53,local0,BirdMic,[AP] [AP] teardown complete
+2026-05-12,15:04:43,Info,192.168.1.53,local0,BirdMic,[AP] [AP] stop: drops=26271 i2s_err=0 clips=0
+2026-05-12,15:04:43,Info,192.168.1.53,local0,BirdMic,[OTA] Upload started: firmware.bin
+2026-05-12,15:04:43,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Maintenance inhibit set; deep sleep blocked
+2026-05-12,15:04:43,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Maintenance inhibit cleared
+2026-05-12,15:04:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #25159 (ring buffer full)
+2026-05-12,15:03:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #23752 (ring buffer full)
+2026-05-12,15:03:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=721s heap=74364/45764 net=sta rssi=-51 stream=none drops=23729 i2serr=0
+2026-05-12,15:03:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #22346 (ring buffer full)
+2026-05-12,15:02:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #20939 (ring buffer full)
+2026-05-12,15:02:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=661s heap=74136/45764 net=sta rssi=-51 stream=none drops=20917 i2serr=0
+2026-05-12,15:02:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #19532 (ring buffer full)
+2026-05-12,15:01:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #18126 (ring buffer full)
+2026-05-12,15:01:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=601s heap=74152/45764 net=sta rssi=-53 stream=none drops=18105 i2serr=0
+2026-05-12,15:01:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #16719 (ring buffer full)
+2026-05-12,15:00:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #15313 (ring buffer full)
+2026-05-12,15:00:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=541s heap=74152/45764 net=sta rssi=-52 stream=none drops=15292 i2serr=0
+2026-05-12,15:00:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #13906 (ring buffer full)
+2026-05-12,14:59:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #12499 (ring buffer full)
+2026-05-12,14:59:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=481s heap=74140/45764 net=sta rssi=-52 stream=none drops=12479 i2serr=0
+2026-05-12,14:59:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #11093 (ring buffer full)
+2026-05-12,14:58:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #9686 (ring buffer full)
+2026-05-12,14:58:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=421s heap=74144/45764 net=sta rssi=-53 stream=none drops=9667 i2serr=0
+2026-05-12,14:58:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8279 (ring buffer full)
+2026-05-12,14:57:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #6873 (ring buffer full)
+2026-05-12,14:57:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=361s heap=74144/45764 net=sta rssi=-50 stream=none drops=6854 i2serr=0
+2026-05-12,14:57:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #5466 (ring buffer full)
+2026-05-12,14:56:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4060 (ring buffer full)
+2026-05-12,14:56:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=301s heap=74144/45764 net=sta rssi=-53 stream=none drops=4042 i2serr=0
+2026-05-12,14:56:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2653 (ring buffer full)
+2026-05-12,14:56:18,Info,192.168.1.53,local0,BirdMic,[SS] Stream session ended: reason=client_closed tx_bytes=6088704 duration_ms=63434 write_stalls=0
+2026-05-12,14:55:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=241s heap=68332/45764 net=sta rssi=-53 stream=http drops=2652 i2serr=0
+2026-05-12,14:55:14,Info,192.168.1.53,local0,BirdMic,[SS] Stream: drained 98304 stale bytes before HTTP session
+2026-05-12,14:55:11,Info,192.168.1.53,local0,BirdMic,[SS] RTSP session ended: client=192.168.1.43 reason=write_stall tx_bytes=4482900 duration_ms=47877
+2026-05-12,14:55:11,Warning,192.168.1.53,local0,BirdMic,"[SS] RTSP: write failed, closing client"
+2026-05-12,14:54:57,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2522 (ring buffer full)
+2026-05-12,14:54:54,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,14:54:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=181s heap=68596/45764 net=sta rssi=-51 stream=rtsp drops=2521 i2serr=0
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=646925820
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,14:54:23,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,14:54:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2316 (ring buffer full)
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[AP] [AP] teardown complete
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[AP] [AP] stop: drops=2315 i2s_err=0 clips=0
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[SS] Stream stop confirmed after 40 ms
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[SS] RTSP session ended: client=192.168.1.43 reason=restart_requested tx_bytes=9499552 duration_ms=100454
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[SS] Stream stop requested (timeout 2000 ms)
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[HC] restart-audio: waiting for stream session to drain
+2026-05-12,14:54:18,Info,192.168.1.53,local0,BirdMic,[HC] restart-audio requested
+2026-05-12,14:54:14,Info,192.168.1.53,local0,BirdMic,[RT] audio_profile configured to quality_48k (restart-audio required)
+2026-05-12,14:54:14,Info,192.168.1.53,local0,BirdMic,[RT] convert_shift configured to 11 (restart-audio required)
+2026-05-12,14:54:14,Info,192.168.1.53,local0,BirdMic,[RT] hpf_cutoff_hz set to 100
+2026-05-12,14:54:14,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: disabled, fc=100 Hz (a_q15=32342)"
+2026-05-12,14:54:14,Info,192.168.1.53,local0,BirdMic,[RT] hpf_enabled set to 0
+2026-05-12,14:54:14,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: disabled, fc=100 Hz (a_q15=32342)"
+2026-05-12,14:54:09,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=7
+2026-05-12,14:53:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=121s heap=73900/46720 net=sta rssi=-51 stream=rtsp drops=2269 i2serr=0
+2026-05-12,14:53:42,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2259 (ring buffer full)
+2026-05-12,14:53:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=6
+2026-05-12,14:53:08,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: GET_PARAMETER CSeq=5
+2026-05-12,14:52:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=61s heap=76908/53016 net=sta rssi=-53 stream=rtsp drops=2258 i2serr=0
+2026-05-12,14:52:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP PLAY: client=192.168.1.43 session=232278553
+2026-05-12,14:52:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP: drained 98304 stale bytes before PLAY
+2026-05-12,14:52:38,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: PLAY CSeq=4
+2026-05-12,14:52:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP SETUP Transport: RTP/AVP/TCP;unicast;interleaved=0-1
+2026-05-12,14:52:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: SETUP CSeq=3
+2026-05-12,14:52:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: DESCRIBE CSeq=2
+2026-05-12,14:52:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP request: OPTIONS CSeq=1
+2026-05-12,14:52:37,Info,192.168.1.53,local0,BirdMic,[SS] RTSP client connected: 192.168.1.43
+2026-05-12,14:52:19,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1408 (ring buffer full)
+2026-05-12,14:52:07,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept 50009 sec. Continuing.
+2026-05-12,14:51:49,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1 (ring buffer full)
+2026-05-12,14:51:49,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=1s heap=76088/72896 net=sta rssi=-52 stream=none drops=0 i2serr=0
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[SS] RTSP server started on :8554
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[MAIN] Normal services started; audio stream available on :81/stream
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,"[SS] RTSP server task created (core 0, prio 5)"
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,"[SS] Stream server task created (core 0, prio 5)"
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: ENABLED, fc=100 Hz (a_q15=32342)"
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Night after NTP; scheduling deep sleep until next dawn (1778661936)
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,"[SCHED] [SCHED] Recomputed dawn/dusk. today: 1778575622/1778546831, tomorrow: 1778661936/1778633316"
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync ok: 1778611908
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync starting...
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,14:51:48,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-51
+2026-05-12,14:46:31,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,14:46:31,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,14:46:31,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-52
+2026-05-12,14:40:46,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,14:40:46,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,14:40:46,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-75
+2026-05-12,14:40:44,Info,192.168.1.53,local0,BirdMic,[OTA] Rebooting into new firmware
+2026-05-12,14:40:43,Info,192.168.1.53,local0,BirdMic,[OTA] Update complete (921808 bytes); rebooting in 1500 ms
+2026-05-12,14:40:33,Info,192.168.1.53,local0,BirdMic,[OTA] Update.begin() ok; free slot 1572864 bytes
+2026-05-12,14:40:33,Info,192.168.1.53,local0,BirdMic,[OTA] Audio pipeline stopped for OTA
+2026-05-12,14:40:33,Info,192.168.1.53,local0,BirdMic,[AP] [AP] teardown complete
+2026-05-12,14:40:33,Info,192.168.1.53,local0,BirdMic,[AP] [AP] stop: drops=15103 i2s_err=0 clips=0
+2026-05-12,14:40:33,Info,192.168.1.53,local0,BirdMic,[OTA] Upload started: firmware.bin
+2026-05-12,14:40:33,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Maintenance inhibit set; deep sleep blocked
+2026-05-12,14:40:33,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Maintenance inhibit cleared
+2026-05-12,14:40:11,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #14068 (ring buffer full)
+2026-05-12,14:40:10,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=304s heap=83520/46716 net=sta rssi=-83 stream=none drops=14017 i2serr=0
+2026-05-12,14:39:41,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #12661 (ring buffer full)
+2026-05-12,14:39:11,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #11254 (ring buffer full)
+2026-05-12,14:39:10,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=244s heap=83520/46716 net=sta rssi=-80 stream=none drops=11205 i2serr=0
+2026-05-12,14:38:41,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #9848 (ring buffer full)
+2026-05-12,14:38:11,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8441 (ring buffer full)
+2026-05-12,14:38:10,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=184s heap=83520/46716 net=sta rssi=-82 stream=none drops=8392 i2serr=0
+2026-05-12,14:37:41,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7035 (ring buffer full)
+2026-05-12,14:37:11,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #5628 (ring buffer full)
+2026-05-12,14:37:10,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=124s heap=80564/46716 net=sta rssi=-82 stream=none drops=5579 i2serr=0
+2026-05-12,14:36:41,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4221 (ring buffer full)
+2026-05-12,14:36:11,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2815 (ring buffer full)
+2026-05-12,14:36:10,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=64s heap=80532/46716 net=sta rssi=-79 stream=none drops=2767 i2serr=0
+2026-05-12,14:35:41,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1408 (ring buffer full)
+2026-05-12,14:35:25,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept 51011 sec. Continuing.
+2026-05-12,14:35:12,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1 (ring buffer full)
+2026-05-12,14:35:11,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=4s heap=73620/71620 net=sta rssi=-80 stream=none drops=0 i2serr=0
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,[MAIN] Normal services started; audio stream available on :81/stream
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,[SS] Stream server started on :81
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,"[SS] Stream server task created (core 0, prio 5)"
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: ENABLED, fc=100 Hz (a_q15=32342)"
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Night after NTP; scheduling deep sleep until next dawn (1778661936)
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,"[SCHED] [SCHED] Recomputed dawn/dusk. today: 1778575622/1778546831, tomorrow: 1778661936/1778633316"
+2026-05-12,14:35:10,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync ok: 1778610910
+2026-05-12,14:35:06,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync starting...
+2026-05-12,14:35:06,Info,192.168.1.53,local0,BirdMic,[OTA] OtaManager initialised
+2026-05-12,14:35:06,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,14:35:06,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,14:35:06,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-76
+2026-05-12,14:34:11,Info,192.168.1.53,local0,BirdMic,[OTA] Rebooting into new firmware
+2026-05-12,14:34:10,Info,192.168.1.53,local0,BirdMic,[OTA] Update complete (921712 bytes); rebooting in 1500 ms
+2026-05-12,14:34:03,Info,192.168.1.53,local0,BirdMic,[OTA] Update.begin() ok; free slot 1572864 bytes
+2026-05-12,14:34:03,Info,192.168.1.53,local0,BirdMic,[OTA] Audio pipeline stopped for OTA
+2026-05-12,14:34:03,Info,192.168.1.53,local0,BirdMic,[AP] [AP] teardown complete
+2026-05-12,14:34:03,Info,192.168.1.53,local0,BirdMic,[AP] [AP] stop: drops=17321 i2s_err=0 clips=0
+2026-05-12,14:34:03,Info,192.168.1.53,local0,BirdMic,[OTA] Upload started: firmware.bin
+2026-05-12,14:34:03,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Maintenance inhibit set; deep sleep blocked
+2026-05-12,14:34:03,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Maintenance inhibit cleared
+2026-05-12,14:33:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #16881 (ring buffer full)
+2026-05-12,14:33:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=363s heap=80532/47004 net=sta rssi=-81 stream=none drops=16829 i2serr=0
+2026-05-12,14:33:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #15474 (ring buffer full)
+2026-05-12,14:32:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #14068 (ring buffer full)
+2026-05-12,14:32:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=303s heap=80532/47004 net=sta rssi=-80 stream=none drops=14016 i2serr=0
+2026-05-12,14:32:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #12661 (ring buffer full)
+2026-05-12,14:31:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #11254 (ring buffer full)
+2026-05-12,14:31:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=243s heap=80516/48556 net=sta rssi=-81 stream=none drops=11204 i2serr=0
+2026-05-12,14:31:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #9848 (ring buffer full)
+2026-05-12,14:30:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #8441 (ring buffer full)
+2026-05-12,14:30:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=183s heap=68308/48584 net=sta rssi=-81 stream=none drops=8391 i2serr=0
+2026-05-12,14:30:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #7035 (ring buffer full)
+2026-05-12,14:29:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #5628 (ring buffer full)
+2026-05-12,14:29:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=123s heap=80532/48628 net=sta rssi=-80 stream=none drops=5578 i2serr=0
+2026-05-12,14:29:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #4221 (ring buffer full)
+2026-05-12,14:28:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #2815 (ring buffer full)
+2026-05-12,14:28:53,Info,192.168.1.53,local0,BirdMic,[MAIN] Health: up=63s heap=80532/48788 net=sta rssi=-81 stream=none drops=2766 i2serr=0
+2026-05-12,14:28:24,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1408 (ring buffer full)
+2026-05-12,14:28:10,Info,192.168.1.53,local0,BirdMic,[SCHED] [SLEEP] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); would have slept 51446 sec. Continuing.
+2026-05-12,14:27:54,Warning,192.168.1.53,local0,BirdMic,[AP] [RB] drop #1 (ring buffer full)
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,[SS] Stream server started on :81
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,[SS] RTSP server started on :8554
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,"[SS] RTSP server task created (core 0, prio 5)"
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,"[SS] Stream server task created (core 0, prio 5)"
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] updated: ENABLED, fc=100 Hz (a_q15=32342)"
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,[AP] [AP] profile=quality_48k sample_rate=48000 convert_shift=11
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,"[AP] [HPF] disabled, fc=100 Hz, R=0.986995 (a_q15=32342)"
+2026-05-12,14:27:53,Info,192.168.1.53,local0,BirdMic,"[AP] [RB] created 98304 bytes, producer task started"
+2026-05-12,14:27:52,Info,192.168.1.53,local0,BirdMic,"[AP] [I2S] init ok: 48000 Hz (quality_48k), 32-bit, mono, WS=25, SCK=33, SD=32"
+2026-05-12,14:27:52,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Deep sleep disabled (ENABLE_DEEP_SLEEP=0); staying awake despite night.
+2026-05-12,14:27:52,Info,192.168.1.53,local0,BirdMic,[MAIN] [MODE] Night after NTP; scheduling deep sleep until next dawn (1778661936)
+2026-05-12,14:27:52,Info,192.168.1.53,local0,BirdMic,"[SCHED] [SCHED] Recomputed dawn/dusk. today: 1778575622/1778546831, tomorrow: 1778661936/1778633316"
+2026-05-12,14:27:52,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync ok: 1778610472
+2026-05-12,14:27:51,Info,192.168.1.53,local0,BirdMic,[SCHED] [NTP] Sync starting...
+2026-05-12,14:27:51,Info,192.168.1.53,local0,BirdMic,[MAIN] HTTP control server started on :80
+2026-05-12,14:27:51,Info,192.168.1.53,local0,BirdMic,[HC] Registered /api/* routes
+2026-05-12,14:27:51,Info,192.168.1.53,local0,BirdMic,[NET] STA connected: IP=192.168.1.53 RSSI=-74

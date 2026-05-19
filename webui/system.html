@@ -40,6 +40,7 @@
       <div class="row"><span class="lbl">Heap min free</span><span class="val" id="pf-heap-min">—</span></div>
       <div class="row"><span class="lbl">CPU</span><span class="val" id="pf-cpu">—</span></div>
       <div class="row"><span class="lbl">Wi-Fi RSSI</span><span class="val" id="pf-rssi">—</span></div>
+      <div class="row"><span class="lbl">Wi-Fi signal</span><span class="val" id="pf-rssi-quality">—</span></div>
       <div class="row"><span class="lbl">I2S stack HWM</span><span class="val" id="pf-i2s-hwm">—</span></div>
       <div class="row"><span class="lbl">Loop stack HWM</span><span class="val" id="pf-loop-hwm">—</span></div>
     </div>
@@ -80,7 +81,7 @@
   </div>
 </div>
 <script>
-var logAutoScroll=true,lastLogFetch=0;
+var logAutoScroll=true,lastLogFetch=0,lastWifiData=null;
 function $(id){return document.getElementById(id)}
 function badgeClass(cls,text){return '<span class="badge '+cls+'">'+text+'</span>'}
 function fmtUptime(s){s=Math.max(0,Math.floor(s||0));var d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60),sec=s%60,r='';if(d)r+=d+'d ';if(d||h)r+=h+'h ';if(d||h||m)r+=m+'m ';return r+sec+'s'}
@@ -93,12 +94,14 @@ function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){r
 function getJSON(url,cb,errCb){fetch(url).then(function(r){return r.json()}).then(cb).catch(function(e){console.warn(url,e);if(errCb)errCb(e)})}
 function postJSON(url,body,cb){var opts={method:'POST',headers:{'X-ESP32MIC-CSRF':'1'}};if(body){opts.body=new URLSearchParams(body);opts.headers['Content-Type']='application/x-www-form-urlencoded'}fetch(url,opts).then(function(r){return r.json()}).then(cb).catch(function(e){cb({error:String(e)})})}
 function fetchStatus(){getJSON('/api/status',function(d){var mode=d.mode||'unknown';$('st-mode').innerHTML=badgeClass(mode==='day'?'on':mode==='night'?'neutral':'neutral',mode);$('st-uptime').textContent=fmtUptime(d.uptime_sec||0);$('st-boot').textContent=d.boot_count||'—';var b=d.build||{};$('st-build').textContent=b.id||'—';$('st-now').textContent=fmtTime(d.now_utc);$('st-ntp').textContent=fmtTime(d.last_ntp_check_utc);var loc=d.location||{};$('st-location').textContent=(loc.lat!=null&&loc.lon!=null)?(loc.lat+', '+loc.lon):'—';var td=d.today||{},tm=d.tomorrow||{},ne=d.next_event||{};$('st-dawn').textContent=fmtTime(td.civil_dawn_utc);$('st-dusk').textContent=fmtTime(td.civil_dusk_utc);$('st-tom-dawn').textContent=fmtTime(tm.civil_dawn_utc);$('st-tom-dusk').textContent=fmtTime(tm.civil_dusk_utc);$('st-next').textContent=(ne.type||'—')+(ne.seconds_until?' in '+fmtUptime(ne.seconds_until):'')})}
-function fetchPerf(){getJSON('/api/perf_status',function(d){var h=d.heap||{},hw=d.stack_hwm||{};$('pf-heap-free').textContent=fmtBytes(h.free);$('pf-heap-min').innerHTML=h.min_free!=null?(h.min_free<20480?'<span class="badge warn">'+fmtBytes(h.min_free)+'</span>':fmtBytes(h.min_free)):'—';$('pf-cpu').textContent=d.cpu_mhz?d.cpu_mhz+' MHz':'—';var rssi=d.wifi_rssi_dbm;$('pf-rssi').innerHTML=rssi!=null?(rssi<-80?'<span class="badge warn">'+rssi+' dBm</span>':rssi+' dBm'):'—';$('pf-i2s-hwm').textContent=hw.i2s_producer!=null?hw.i2s_producer+' B':'—';$('pf-loop-hwm').textContent=hw.loop!=null?hw.loop+' B':'—'})}
+function fetchPerf(){getJSON('/api/perf_status',function(d){var h=d.heap||{},hw=d.stack_hwm||{};$('pf-heap-free').textContent=fmtBytes(h.free);$('pf-heap-min').innerHTML=h.min_free!=null?(h.min_free<20480?'<span class="badge warn">'+fmtBytes(h.min_free)+'</span>':fmtBytes(h.min_free)):'—';$('pf-cpu').textContent=d.cpu_mhz?d.cpu_mhz+' MHz':'—';var rssi=d.wifi_rssi_dbm;var rssiQual=lastWifiData?lastWifiData.rssi_quality:null;var rssiBadge=rssiQual==='unstable'?'off':rssiQual==='weak'?'warn':'';$('pf-rssi').innerHTML=rssi!=null?((rssiBadge||rssi<=-80)?'<span class="badge '+(rssiBadge||'warn')+'">'+rssi+' dBm'+(rssiQual&&rssiQual!=='good'?' ('+rssiQual+')':'')+'</span>':rssi+' dBm'):'—';$('pf-i2s-hwm').textContent=hw.i2s_producer!=null?hw.i2s_producer+' B':'—';$('pf-loop-hwm').textContent=hw.loop!=null?hw.loop+' B':'—';renderRssiQuality()})}
+function renderRssiQuality(){var el=$('pf-rssi-quality');if(!el)return;var w=lastWifiData;if(!w||w.rssi_dbm==null){el.textContent='—';return}var q=w.rssi_quality||'unknown';var warnings={'weak':'Streaming may be affected','unstable':'Streaming likely impaired'};var cls=q==='unstable'?'off':q==='weak'?'warn':'on';var label=q.charAt(0).toUpperCase()+q.slice(1);var note=warnings[q]?(' — '+warnings[q]):'';el.innerHTML='<span class="badge '+cls+'">'+label+'</span>'+escHtml(note)}
+function fetchWifi(){getJSON('/api/wifi_status',function(w){lastWifiData=w;renderRssiQuality()})}
 function fetchLogs(){var box=$('log-box');getJSON('/api/logs',function(d){var lines=d.logs||[];if(!lines.length){box.textContent='(no logs)';lastLogFetch=Date.now();updateLogAge();return}box.innerHTML=lines.map(function(line){var m=line.match(/\[([EWID])\]/),lvl=m?m[1]:'I';return '<span class="log-line lvl-'+lvl+'">'+escHtml(line)+'</span>'}).join('\n');lastLogFetch=Date.now();updateLogAge();if(logAutoScroll)box.scrollTop=box.scrollHeight},function(){box.textContent='(failed to load logs)'})}
 function updateLogAge(){if(!lastLogFetch){$('log-age').textContent='';return}var s=Math.round((Date.now()-lastLogFetch)/1000);$('log-age').textContent=s<5?'Logs updated just now':'Logs updated '+s+'s ago'}
 function toggleLogScroll(){logAutoScroll=!logAutoScroll;$('log-scroll-btn').textContent=logAutoScroll?'Auto-scroll on':'Auto-scroll off'}
 function doAction(name,btn){var prompt=name==='reboot'?'Reboot device?':'Sync time now?';if(!confirm(prompt))return;var buttons=[$('btn-time-sync'),$('btn-reboot')];buttons.forEach(function(b){setDisabled(b,true)});var old=btn.textContent;btn.textContent='…';setMsg('actions-msg','Running '+name+'…','info');postJSON('/api/action/'+name,null,function(d){buttons.forEach(function(b){setDisabled(b,false)});btn.textContent=old;if(d.ok){setMsg('actions-msg',name+' done.','ok');setTimeout(fetchStatus,1200)}else setMsg('actions-msg',d.error||'failed','err');clearMsg('actions-msg',5000)})}
-function pollAll(){fetchStatus();fetchPerf();fetchOtaStatus()}
+function pollAll(){fetchStatus();fetchPerf();fetchWifi();fetchOtaStatus()}
 
 // ---- OTA ----
 var otaActive=false;

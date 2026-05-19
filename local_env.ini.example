@@ -23,7 +23,9 @@ build_flags =
   ; Options: 0 = quality_48k (48 kHz, default), 1 = stability_24k (24 kHz)
   ; Change via the /audio UI page or POST /api/set {"audio_profile": "stability_24k"}
   ; SAMPLE_RATE_HZ below is a compile-time seed; the runtime profile takes precedence.
+  ; AUDIO_PROFILE_DEFAULT controls first boot / invalid NVS fallback only.
   -D SAMPLE_RATE_HZ=48000           ; Compile-time seed sample rate (Hz)
+  ; -D AUDIO_PROFILE_DEFAULT=AUDIO_PROFILE_STABILITY_24K ; safer RTSP/BirdNET-Go default
   -D CONVERT_SHIFT=11               ; 32→16-bit shift; lower is louder
   -D HPF_ENABLE=1                   ; 1=enable DC-block/HPF, 0=off
   -D HPF_CUTOFF_HZ=100              ; HPF cutoff in Hz
@@ -32,6 +34,13 @@ build_flags =
   -D CHUNK_FRAMES=1024              ; Producer frames per chunk
   -D RB_CAPACITY_BYTES=262144        ; Ring buffer size (bytes) — 256 KB default (~1.4 s at 48 kHz/16-bit)
   -D DMA_BUF_COUNT_CFG=4             ; I2S DMA buffer count
+
+  ; I2S producer task placement
+  ; Default: core 1 (away from Wi-Fi/lwIP on core 0), priority 4, stack 6144 words.
+  ; Override to move the task if needed (e.g. restore legacy core 0 placement).
+  ; -D I2S_TASK_CORE=1               ; CPU core (0 or 1); default 1
+  ; -D I2S_TASK_PRIORITY=4           ; FreeRTOS priority; default 4
+  ; -D I2S_TASK_STACK_WORDS=6144     ; Stack words; default 6144
 
   ; Channel and pins
   -D USE_RIGHT_CHANNEL=1            ; 1=RIGHT, 0=LEFT channel
@@ -46,7 +55,9 @@ build_flags =
   
   ; Power / stability
   -D ENABLE_POWER_SCHEDULING=1       ; 1=deep sleep at night, 0=run continuously
-  -D ENABLE_BROWNOUT_DISABLE=1       ; 1=disable brownout detector, 0=leave enabled
+  -D ENABLE_BROWNOUT_DISABLE=0       ; 0=leave brownout detector enabled (diagnostic default)
+                                     ;   set to 1 only as a temporary workaround for boards
+                                     ;   with marginal power supplies — hides brownout resets
 
   ; Deep sleep (default: enabled)
   ; Set to 0 to prevent the firmware from ever calling esp_deep_sleep_start().
@@ -61,6 +72,7 @@ build_flags =
   ; URL: rtsp://<device-ip>:8554/audio/
   ; Set RTSP_PORT=0 to disable RTSP entirely.
   ; -D RTSP_PORT=8554               ; RTSP listen port (default: 8554)
+  ; -D RTSP_MAX_SAMPLE_RATE_HZ=24000 ; reject RTSP DESCRIBE above this rate; 0 disables guard
 
   ; Local timezone (POSIX TZ string)
   ; Examples:
@@ -83,6 +95,13 @@ build_flags =
   ; -D REMOTE_LOG_PORT=514
   ; '-D REMOTE_LOG_DEVICE="esp32-audio-streamer"'
   ; -D REMOTE_LOG_MIN_LEVEL=2             ; 1=errors, 2=warn+error, 3=info+..., 4=debug+all
+
+  ; Periodic health log (uptime, heap, net, stream, audio drop stats)
+  ; Set to 0 to disable. Default: 60000 (every 60 s).
+  ; Wi-Fi RSSI quality thresholds (firmware classification; affects API, UI warnings, and log rate-limiting)
+  ; -D WIFI_RSSI_WARN_DBM=-70          ; RSSI at or below this = 'weak' (default -70 dBm)
+  ; -D WIFI_RSSI_UNSTABLE_DBM=-75      ; RSSI at or below this = 'unstable' (default -75 dBm)
+  ; -D WIFI_RSSI_WARN_LOG_INTERVAL_MS=60000 ; min ms between repeated weak/unstable RSSI log warnings
 
   ; Periodic health log (uptime, heap, net, stream, audio drop stats)
   ; Set to 0 to disable. Default: 60000 (every 60 s).

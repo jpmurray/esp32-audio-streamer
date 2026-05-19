@@ -40,13 +40,13 @@
 #endif
 // Hardening tunable defaults (mirrors StreamServer.cpp; used read-only in status endpoint)
 #ifndef STREAM_WRITE_STALL_LIMIT
-#define STREAM_WRITE_STALL_LIMIT 500
+#define STREAM_WRITE_STALL_LIMIT 50
 #endif
 #ifndef STREAM_IDLE_TIMEOUT_COUNT
 #define STREAM_IDLE_TIMEOUT_COUNT 30
 #endif
 #ifndef RTSP_WRITE_STALL_LIMIT
-#define RTSP_WRITE_STALL_LIMIT 500
+#define RTSP_WRITE_STALL_LIMIT 50
 #endif
 #ifndef RTSP_IDLE_TIMEOUT_COUNT
 #define RTSP_IDLE_TIMEOUT_COUNT 30
@@ -172,7 +172,7 @@ static void handleApiStatus(WebServer& server) {
 #endif
     }
 
-    char wifi_json[900];
+    char wifi_json[1024];
     if (networkManager_writeStatusJson(wifi_json, sizeof(wifi_json)) < 0) {
         strcpy(wifi_json, "{}");
     }
@@ -278,8 +278,10 @@ static void handleApiAudioStatus(WebServer& server) {
     }
 
     AudioMetrics m = audioPipeline_getMetrics();
+    StreamWriteDiagnostics wd;
+    streamServer_getWriteDiagnostics(&wd);
 
-    char buf[1800]; int n = 0;
+    char buf[2400]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{"
         "\"i2s_ok\":%s,"
@@ -315,9 +317,15 @@ static void handleApiAudioStatus(WebServer& server) {
         "\"clipped_last_block\":%s,"
         "\"i2s_error_count\":%lu,"
         "\"rb_drop_count\":%lu,"
+        "\"idle_discard_count\":%lu,"
+        "\"idle_discard_bytes\":%lu,"
         "\"stream_tx_bytes\":%lu,"
         "\"stream_write_stalls\":%lu,"
         "\"stream_timeout_count\":%lu,"
+        "\"current_max_consecutive_write_stalls\":%lu,"
+        "\"last_session_write_stalls\":%lu,"
+        "\"last_session_max_consecutive_write_stalls\":%lu,"
+        "\"last_write_errno\":%d,"
         "\"stop_requested\":%s,"
         "\"last_transport\":\"%s\","
         "\"last_disconnect_reason\":\"%s\","
@@ -358,9 +366,15 @@ static void handleApiAudioStatus(WebServer& server) {
         m.clipped_last_block ? "true" : "false",
         (unsigned long)m.i2s_error_count,
         (unsigned long)m.rb_drop_count,
+        (unsigned long)m.idle_discard_count,
+        (unsigned long)m.idle_discard_bytes,
         (unsigned long)g_stream_tx_bytes,
         (unsigned long)g_stream_write_stalls,
         (unsigned long)g_stream_timeout_count,
+        (unsigned long)wd.current_max_consecutive_stalls,
+        (unsigned long)wd.last_session_write_stalls,
+        (unsigned long)wd.last_session_max_consecutive_stalls,
+        (int)wd.last_write_errno,
         g_stream_stop_requested ? "true" : "false",
         streamServer_transportName((StreamTransport)g_stream_last_transport),
         streamServer_disconnectReasonName((StreamDisconnectReason)g_stream_last_disconnect_reason),
@@ -393,7 +407,7 @@ static void handleApiPerfStatus(WebServer& server) {
     // CPU frequency
     uint32_t cpu_mhz = getCpuFrequencyMhz();
 
-    char buf[720]; int n = 0;
+    char buf[1024]; int n = 0;
     n += snprintf(buf + n, sizeof(buf) - n,
         "{"
         "\"uptime_ms\":%lu,"
@@ -401,8 +415,7 @@ static void handleApiPerfStatus(WebServer& server) {
         "\"stack_hwm\":{\"i2s_producer\":%lu,\"loop\":%lu,\"stream_server\":%lu,\"rtsp_server\":%lu},"
         "\"cpu_mhz\":%lu,"
         "\"wifi_sleep_disabled\":true,"
-        "\"wifi_rssi_dbm\":%s"
-        "}",
+        "\"wifi_rssi_dbm\":%s",
         (unsigned long)millis(),
         (unsigned long)heap_free,
         (unsigned long)heap_min_free,
@@ -414,6 +427,35 @@ static void handleApiPerfStatus(WebServer& server) {
         (unsigned long)cpu_mhz,
         networkManager_staConnected() ? String(WiFi.RSSI()).c_str() : "null"
     );
+
+    // Remote log status — always present regardless of ENABLE_REMOTE_LOG.
+    RemoteLogStatus rl;
+    logbuf_getRemoteStatus(&rl);
+    n += snprintf(buf + n, sizeof(buf) - n,
+        ",\"remote_log\":{"
+        "\"compiled_enabled\":%s,"
+        "\"configured\":%s,"
+        "\"suspended\":%s,"
+        "\"total_attempts\":%lu,"
+        "\"total_successes\":%lu,"
+        "\"total_failures\":%lu,"
+        "\"total_skipped_weak_rssi\":%lu,"
+        "\"consecutive_failures\":%lu,"
+        "\"suspended_until_ms\":%lu,"
+        "\"last_rssi_dbm\":%d"
+        "}",
+        rl.compiled_enabled        ? "true" : "false",
+        rl.configured              ? "true" : "false",
+        rl.suspended               ? "true" : "false",
+        (unsigned long)rl.total_attempts,
+        (unsigned long)rl.total_successes,
+        (unsigned long)rl.total_failures,
+        (unsigned long)rl.total_skipped_weak_rssi,
+        (unsigned long)rl.consecutive_failures,
+        (unsigned long)rl.suspended_until_ms,
+        rl.last_rssi_dbm
+    );
+    n += snprintf(buf + n, sizeof(buf) - n, "}");
 
     if (n <= 0) { server.send(500, "application/json", "{\"error\":\"formatting\"}"); return; }
     server.send(200, "application/json", buf);
@@ -487,7 +529,7 @@ static bool strictParseBool(const String& s, bool* out) {
 // Wi-Fi management endpoints
 // --------------------------------------------------------
 static void handleApiWifiStatus(WebServer& server) {
-    char buf[900];
+    char buf[1024];
     if (networkManager_writeStatusJson(buf, sizeof(buf)) < 0) {
         server.send(500, "application/json", "{\"error\":\"wifi status overflow\"}");
         return;

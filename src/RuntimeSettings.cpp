@@ -26,6 +26,9 @@
 #ifndef CONVERT_SHIFT
 #define CONVERT_SHIFT 11
 #endif
+#ifndef AUDIO_PROFILE_DEFAULT
+#define AUDIO_PROFILE_DEFAULT AUDIO_PROFILE_QUALITY_48K
+#endif
 
 // --------------------------------------------------------
 // Preferences keys
@@ -45,7 +48,7 @@ RuntimeSettings g_runtime_settings = {
     .hpf_enabled       = (HPF_ENABLE != 0),
     .hpf_cutoff_hz     = (int16_t)HPF_CUTOFF_HZ,
     .convert_shift     = (int8_t)CONVERT_SHIFT,
-    .audio_profile     = AUDIO_PROFILE_QUALITY_48K,
+    .audio_profile     = (AudioProfile)AUDIO_PROFILE_DEFAULT,
 };
 
 // --------------------------------------------------------
@@ -111,11 +114,11 @@ void runtimeSettings_load() {
     }
 
     if (rt.isKey(KEY_AUDIO_PROFILE)) {
-        int v = (int)rt.getUChar(KEY_AUDIO_PROFILE, (uint8_t)AUDIO_PROFILE_QUALITY_48K);
+        int v = (int)rt.getUChar(KEY_AUDIO_PROFILE, (uint8_t)AUDIO_PROFILE_DEFAULT);
         if (runtimeSettings_validateAudioProfile(v)) {
             g_runtime_settings.audio_profile = (AudioProfile)v;
         } else {
-            LOGW("RT", "Stored audio_profile=%d invalid; using default (quality_48k)\n", v);
+            LOGW("RT", "Stored audio_profile=%d invalid; using default (%s)\n", v, audioProfile_name((AudioProfile)AUDIO_PROFILE_DEFAULT));
         }
     }
 

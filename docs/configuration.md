@@ -34,6 +34,16 @@ Settings in `local_env.ini` become PlatformIO build flags. Runtime settings are 
 | `RB_CAPACITY_BYTES` | 262144 | Preferred ring-buffer size; firmware falls back if allocation fails |
 | `DMA_BUF_COUNT_CFG` | 4 | I2S DMA buffer count |
 
+### I2S producer task placement
+
+| Flag | Default | Description |
+|---|---:|---|
+| `I2S_TASK_STACK_WORDS` | 6144 | Stack size in words for the I2S producer FreeRTOS task |
+| `I2S_TASK_PRIORITY` | 4 | FreeRTOS priority of the I2S producer task |
+| `I2S_TASK_CORE` | 1 | CPU core to pin the I2S producer task to (0 or 1) |
+
+The default places the producer on core 1, away from Wi-Fi/lwIP internals which run on core 0. Set `I2S_TASK_CORE=0` to restore the legacy behaviour if needed.
+
 ### Runtime audio profiles
 
 | Profile | Sample rate | Use when |
@@ -57,6 +67,28 @@ Optional build flags:
 | `WIFI_SETUP_AP_UNIQUE_SUFFIX` | 1 | Append MAC suffix to AP name |
 | `WIFI_CONNECT_TIMEOUT_MS` | 20000 | STA connect timeout before setup AP fallback |
 
+### RSSI quality thresholds
+
+The firmware classifies the current STA RSSI into a quality tier that is exposed in
+`/api/wifi_status`, health logs, and the web UI.
+
+| Flag | Default | Description |
+|---|---:|---|
+| `WIFI_RSSI_WARN_DBM` | -70 | RSSI at or below this is classified as `weak` |
+| `WIFI_RSSI_UNSTABLE_DBM` | -75 | RSSI at or below this is classified as `unstable` |
+| `WIFI_RSSI_WARN_LOG_INTERVAL_MS` | 60000 | Minimum ms between repeated weak/unstable RSSI log warnings |
+
+Classification:
+
+| `rssi_quality` | Condition | Meaning |
+|---|---|---|
+| `good` | RSSI > `WIFI_RSSI_WARN_DBM` | Signal is acceptable for streaming |
+| `weak` | RSSI ≤ `WIFI_RSSI_WARN_DBM` | Signal may cause occasional stream issues |
+| `unstable` | RSSI ≤ `WIFI_RSSI_UNSTABLE_DBM` | Signal is likely to cause stream interruptions |
+| `unknown` | STA disconnected | Quality cannot be determined |
+
+A rate-limited warning is logged when the connection enters `weak` or `unstable` and again at most once per `WIFI_RSSI_WARN_LOG_INTERVAL_MS` while it stays degraded. The warning timer resets automatically when signal improves.
+
 Wi-Fi passwords are write-only: they are not shown in the UI, logs, or API responses.
 
 ### Location and time
@@ -79,8 +111,16 @@ Examples:
 | Flag | Default | Description |
 |---|---:|---|
 | `ENABLE_DEEP_SLEEP` | 1 | Set to `0` to stay awake all the time |
-| `ENABLE_BROWNOUT_DISABLE` | 1 | Disable ESP32 brownout detector |
+| `ENABLE_BROWNOUT_DISABLE` | 0 | Disable ESP32 brownout detector |
 | `LOG_LEVEL` | 2 | `1` errors, `2` info/warn/error, `3` debug |
+
+> **`ENABLE_BROWNOUT_DISABLE` default changed to `0`** (firmware v4+ / work item 4).
+> Leaving the brownout detector enabled is the diagnostic-safe default: brownout resets
+> are now visible in the serial log and reset-reason API (`ESP_RST_BROWNOUT`) rather
+> than being silently suppressed.
+> If your board has a marginal power supply and you need to work around spurious resets
+> while investigating, set `-D ENABLE_BROWNOUT_DISABLE=1` temporarily. Fix the power
+> supply root cause before deploying.
 
 ### Logging
 
@@ -103,6 +143,9 @@ Optional. All flags are compile-time only. When enabled, logs are forwarded as b
 | `REMOTE_LOG_PORT` | `514` | UDP port |
 | `REMOTE_LOG_DEVICE` | `"esp32-audio-streamer"` | Device name included in each syslog message |
 | `REMOTE_LOG_MIN_LEVEL` | `1` | Remote-only threshold (see table below) |
+| `REMOTE_LOG_FAILURE_THRESHOLD` | `3` | Consecutive send failures before entering backoff suspension |
+| `REMOTE_LOG_BACKOFF_MS` | `300000` | Backoff suspension duration in ms (default 5 min); suspension clears automatically |
+| `REMOTE_LOG_MIN_RSSI_DBM` | `-75` | STA RSSI threshold below which remote sends are skipped (not counted as failures) |
 
 `REMOTE_LOG_MIN_LEVEL` controls which already-compiled log levels are forwarded remotely:
 
@@ -117,6 +160,9 @@ Limitations:
 
 - `REMOTE_LOG_HOST` must be an IPv4 literal (e.g. `"192.168.1.10"`). DNS resolution is never attempted to avoid blocking the log path.
 - UDP datagrams are best-effort: dropped silently when Wi-Fi is unavailable. No retries, no acknowledgement.
+- After `REMOTE_LOG_FAILURE_THRESHOLD` consecutive failures the sink enters a timed backoff (`REMOTE_LOG_BACKOFF_MS`) and re-enables automatically.
+- Sends are silently skipped when STA RSSI is below `REMOTE_LOG_MIN_RSSI_DBM`; these skips are not counted as failures.
+- Remote log state (suspension status, counters) is visible in `/api/perf_status` under the `remote_log` object.
 - The remote sink never calls `LOG*` macros internally to prevent recursion.
 
 Example `local_env.ini` fragment:
@@ -229,6 +275,9 @@ After the one-time serial flash:
 
 - `STREAM_WAV_ENABLE` only controls `/stream`; `/stream.wav` and `/stream.pcm` always exist.
 - `RTSP_PORT=0` disables RTSP at build time.
+- `RTSP_MAX_SAMPLE_RATE_HZ` defaults to `24000`; RTSP `DESCRIBE` is rejected above this rate because field testing showed 48 kHz L16/RTSP can fail to reach `PLAY` or exhaust TCP buffers on ESP32, while `stability_24k` works reliably. Set it to `0` to disable this guard.
+- `AUDIO_PROFILE_DEFAULT` controls first boot / invalid-NVS fallback only. For BirdNET-Go RTSP deployments, `AUDIO_PROFILE_STABILITY_24K` is recommended.
+- Serial messages like `_parseRequest(): Invalid request: \x16\x03\x01...` are TLS ClientHello bytes hitting the plain HTTP server, usually from an `https://` URL or browser HTTPS upgrade. Use `http://<device-ip>/...`; the firmware does not serve HTTPS.
 - `LOG_LEVEL` and all remote logging flags are compile-time only; they cannot be changed at runtime.
 - `REMOTE_LOG_HOST` must be an IPv4 literal; DNS is never used.
 - Remote logging is best-effort UDP only — no retries, no delivery guarantee.

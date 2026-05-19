@@ -39,9 +39,22 @@ static SemaphoreHandle_t s_mutex = nullptr;
 #if ENABLE_REMOTE_LOG
 static WiFiUDP   s_remote_udp;
 static IPAddress s_remote_ip;
-static bool      s_remote_config_ok = false;
-static bool      s_remote_sending   = false;
-static uint8_t   s_remote_failures  = 0;
+
+// Configuration validity — set once at init, never changed at runtime.
+static bool      s_remote_configured  = false;
+
+// Runtime suspension / backoff — independent of configuration validity.
+static bool      s_remote_sending     = false;  // re-entry guard
+static bool      s_remote_suspended   = false;  // in backoff window
+static uint32_t  s_remote_suspend_until_ms = 0;
+
+// Counters — protected by a brief critical section, never held during UDP I/O.
+static uint32_t  s_remote_total_attempts   = 0;
+static uint32_t  s_remote_total_successes  = 0;
+static uint32_t  s_remote_total_failures   = 0;
+static uint32_t  s_remote_total_skipped_rssi = 0;
+static uint32_t  s_remote_consecutive_fail = 0;
+static int       s_remote_last_rssi        = 0;
 #endif
 
 // --------------------------------------------------------
@@ -75,12 +88,42 @@ static bool severityAllowedRemote(LogSeverity sev) {
 }
 
 static void remoteLog(LogSeverity sev, const char* module, const char* msg) {
+    // Re-entry guard — never recurse from within remote-log failure handling.
     if (s_remote_sending) return;
-    if (!s_remote_config_ok) return;
-    if (WiFi.status() != WL_CONNECTED) return;
+    // Configuration guard — IP was not parseable at init.
+    if (!s_remote_configured) return;
+    // Severity filter.
     if (!severityAllowedRemote(sev)) return;
+    // WiFi guard — don't touch lwIP when STA is not connected.
+    if (WiFi.status() != WL_CONNECTED) return;
+
+    // Suspension / backoff check (no LOG* call — silent).
+    if (s_remote_suspended) {
+        uint32_t now = (uint32_t)millis();
+        if ((int32_t)(now - s_remote_suspend_until_ms) < 0) {
+            // Still in backoff window; skip silently.
+            return;
+        }
+        // Backoff window expired — re-enable.
+        s_remote_suspended       = false;
+        s_remote_suspend_until_ms = 0;
+        s_remote_consecutive_fail = 0;
+    }
+
+    // Weak-RSSI guard — skip the UDP path entirely when signal is poor.
+    // This is NOT counted as a send failure.
+    int rssi = (int)WiFi.RSSI();
+    s_remote_last_rssi = rssi;
+    if (rssi < REMOTE_LOG_MIN_RSSI_DBM) {
+        // Skipped due to weak RSSI — not counted as a send failure.
+        s_remote_total_skipped_rssi++;
+        return;
+    }
 
     s_remote_sending = true;
+
+    // Snapshot counters before UDP I/O (no lock held during packet send).
+    s_remote_total_attempts++;
 
     // Build RFC3164-style payload: <PRI>DEVICE [MODULE] message
     char payload[256];
@@ -98,13 +141,18 @@ static void remoteLog(LogSeverity sev, const char* module, const char* msg) {
     }
 
     if (ok) {
-        s_remote_failures = 0;
-    } else if (++s_remote_failures >= 3) {
-        // Avoid repeatedly exercising the UDP path when the configured remote
-        // sink is unreachable after Wi-Fi/OTA reboot.  This is intentionally
-        // silent: the remote sink is documented as best-effort and must never
-        // destabilize local HTTP/control behavior.
-        s_remote_config_ok = false;
+        s_remote_total_successes++;
+        s_remote_consecutive_fail = 0;
+    } else {
+        s_remote_total_failures++;
+        s_remote_consecutive_fail++;
+        if (s_remote_consecutive_fail >= REMOTE_LOG_FAILURE_THRESHOLD) {
+            // Enter backoff suspension — remote sink is best-effort; never
+            // call LOG* here to avoid recursion.
+            s_remote_suspended        = true;
+            s_remote_suspend_until_ms = (uint32_t)millis() + REMOTE_LOG_BACKOFF_MS;
+            // consecutive_fail stays set so it is readable via status snapshot.
+        }
     }
 
     s_remote_sending = false;
@@ -120,16 +168,53 @@ void logbuf_init() {
     if (!s_mutex) s_mutex = xSemaphoreCreateMutex();
 
 #if ENABLE_REMOTE_LOG
-    s_remote_failures = 0;
-    s_remote_config_ok = false;
+    s_remote_consecutive_fail  = 0;
+    s_remote_total_attempts    = 0;
+    s_remote_total_successes   = 0;
+    s_remote_total_failures    = 0;
+    s_remote_total_skipped_rssi = 0;
+    s_remote_last_rssi         = 0;
+    s_remote_suspended         = false;
+    s_remote_suspend_until_ms  = 0;
+    s_remote_configured        = false;
     // Parse IPv4 literal once at init. Disable silently on failure.
     const char* host = REMOTE_LOG_HOST;
     if (host && host[0] != '\0') {
         if (s_remote_ip.fromString(host)) {
-            s_remote_config_ok = true;
+            s_remote_configured = true;
         }
-        // If parse fails, s_remote_config_ok stays false — sink is silently disabled.
+        // If parse fails, s_remote_configured stays false — sink is silently disabled.
     }
+#endif
+}
+
+// --------------------------------------------------------
+// Remote log status snapshot
+// --------------------------------------------------------
+void logbuf_getRemoteStatus(RemoteLogStatus* out) {
+    if (!out) return;
+#if ENABLE_REMOTE_LOG
+    out->compiled_enabled        = true;
+    out->configured              = s_remote_configured;
+    out->suspended               = s_remote_suspended;
+    out->total_attempts          = s_remote_total_attempts;
+    out->total_successes         = s_remote_total_successes;
+    out->total_failures          = s_remote_total_failures;
+    out->total_skipped_weak_rssi = s_remote_total_skipped_rssi;
+    out->consecutive_failures    = s_remote_consecutive_fail;
+    out->suspended_until_ms      = s_remote_suspend_until_ms;
+    out->last_rssi_dbm           = s_remote_last_rssi;
+#else
+    out->compiled_enabled        = false;
+    out->configured              = false;
+    out->suspended               = false;
+    out->total_attempts          = 0;
+    out->total_successes         = 0;
+    out->total_failures          = 0;
+    out->total_skipped_weak_rssi = 0;
+    out->consecutive_failures    = 0;
+    out->suspended_until_ms      = 0;
+    out->last_rssi_dbm           = 0;
 #endif
 }
 
